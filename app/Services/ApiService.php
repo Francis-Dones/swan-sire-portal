@@ -12,7 +12,7 @@ class ApiService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.external_api.base_url', 'http://10.174.204.71:8001/api');
+        $this->baseUrl = config('services.external_api.base_url', 'http://sire2.swan-manila.com/api');
         $this->timeout = config('services.external_api.timeout', 30);
         
         Log::info('ApiService initialized', [
