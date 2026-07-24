@@ -11,7 +11,7 @@ return [
     'faker_locale' => 'en_US',
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
-    'external_api_url' => env('EXTERNAL_API_BASE_URL', 'http://sire2.swan-manila.com/api'),
+    'external_api_url' => env('EXTERNAL_API_BASE_URL', 'https://api.sire2.swan-manila.com/api'),
     'providers' => [
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
