@@ -248,7 +248,7 @@
                class="nav-link {{ request()->routeIs('exams*') ? 'active' : '' }}"
                @click="if(!isDesktop) sidebarOpen = false">
                 <span class="nav-icon"><i class="ti ti-clipboard-list"></i></span>
-                <span>BIQ</span>
+                <span>VIQ</span>
             </a>
 
             <a href="{{ route('vessels.index') }}"
