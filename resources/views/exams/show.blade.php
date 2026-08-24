@@ -62,7 +62,9 @@
                     </button>
                 </form>
                 <button type="button"
-                        @click="openReject('{{ route('exams.reject', $exam['id']) }}', 'Exam {{ $exam['exam_id'] ?? $exam['id'] }}')"
+                        data-reject-url="{{ route('exams.reject', $exam['id']) }}"
+                        data-reject-label="Exam {{ $exam['exam_id'] ?? $exam['id'] }}"
+                        @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
                         class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-xl transition-all">
                     <i class="ti ti-x"></i> Reject
                 </button>
@@ -74,7 +76,9 @@
                     </button>
                 </form>
                 <button type="button"
-                        @click="openReject('{{ route('exams.batch.reject', $batchId) }}', 'the entire upload batch')"
+                        data-reject-url="{{ route('exams.batch.reject', $batchId) }}"
+                        data-reject-label="the entire upload batch"
+                        @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
                         class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 text-sm font-semibold rounded-xl transition-all">
                     <i class="ti ti-stack-2"></i> Reject Entire Upload
                 </button>

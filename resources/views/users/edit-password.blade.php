@@ -30,6 +30,26 @@
             @method('PUT')
 
             <div class="max-w-md mx-auto space-y-6">
+                @php
+                    $currentUserId = session('user_id') ?? session('api_user.id');
+                    $isSelfService = $currentUserId !== null && (int) $currentUserId === (int) $user->id;
+                @endphp
+                @if($isSelfService)
+                <!-- Current Password -->
+                <div>
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-2">
+                        <i class="ti ti-lock-open text-gray-400"></i>
+                        Current Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" name="current_password"
+                           class="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-500 transition-all @error('current_password') border-red-500 @enderror"
+                           required>
+                    @error('current_password')
+                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+                @endif
+
                 <!-- New Password -->
                 <div>
                     <label class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-2">

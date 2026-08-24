@@ -121,9 +121,24 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        $request->validate([
+        // Same self/other distinction destroy() uses: the portal authenticates via session
+        // (api_user/user_id), not Laravel's auth guard.
+        $currentUserId = session('user_id') ?? session('api_user.id');
+        $isSelfService = $currentUserId !== null && (int) $currentUserId === (int) $user->id;
+
+        $rules = [
             'password' => ['required', 'confirmed', Password::min(8)],
-        ]);
+        ];
+
+        if ($isSelfService) {
+            $rules['current_password'] = ['required', 'string'];
+        }
+
+        $request->validate($rules);
+
+        if ($isSelfService && !Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+        }
 
         $user->update([
             'password' => Hash::make($request->password),

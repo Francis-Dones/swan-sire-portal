@@ -202,8 +202,18 @@ class InspectionImageController extends Controller
 
         $binary = base64_decode($cached['data']);
 
+        // Allow-list the served content type; anything not a recognized image type is
+        // downgraded to a generic download so a stored non-image mime can't be reflected
+        // as an executable content type.
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $mime = in_array($cached['mime'], $allowedMimes, true) ? $cached['mime'] : 'application/octet-stream';
+
+        // Vessel ownership is enforced server-side by the API (crew are scoped to their own
+        // vessel); this proxy just streams what the API already authorized for the caller.
         return response($binary, 200)
-            ->header('Content-Type', $cached['mime'])
+            ->header('Content-Type', $mime)
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->header('Content-Disposition', 'inline; filename="image-' . $id . '"')
             ->header('Cache-Control', 'private, max-age=300');
     }
 

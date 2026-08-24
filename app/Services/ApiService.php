@@ -150,7 +150,7 @@ class ApiService
             Log::info('External API login response', [
                 'status' => $response->status(),
                 'successful' => $response->successful(),
-                'body' => $response->json()
+                'response_keys' => array_keys($response->json() ?? []),
             ]);
             
             if ($response->successful()) {
@@ -309,6 +309,15 @@ class ApiService
     public function getExam(int $id): array
     {
         return $this->get("exams/{$id}");
+    }
+
+    /**
+     * Distinct vessel_name list the caller (crew or shore) may see, for the exams
+     * filter dropdown. Scoping is enforced server-side by the API.
+     */
+    public function getVessels(): array
+    {
+        return $this->get('exams/vessels');
     }
 
     public function getExamsByVessel(string $vesselName): array

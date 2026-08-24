@@ -41,11 +41,15 @@ Route::middleware('check.api.auth')->group(function () {
         Route::get('/export/excel', [ExamController::class, 'exportExcel'])->name('export.excel');
         Route::get('/export/pdf', [ExamController::class, 'exportPdf'])->name('export.pdf');
         Route::post('/import', [ExamController::class, 'import'])->name('import');
-        Route::post('/batch/{batch}/approve', [ExamController::class, 'approveBatch'])->name('batch.approve');
-        Route::post('/batch/{batch}/reject', [ExamController::class, 'rejectBatch'])->name('batch.reject');
         Route::get('/{id}', [ExamController::class, 'show'])->name('show');
-        Route::post('/{id}/approve', [ExamController::class, 'approve'])->name('approve');
-        Route::post('/{id}/reject', [ExamController::class, 'reject'])->name('reject');
+
+        // Review actions are shore (admin) only.
+        Route::middleware('require.shore.role')->group(function () {
+            Route::post('/batch/{batch}/approve', [ExamController::class, 'approveBatch'])->name('batch.approve');
+            Route::post('/batch/{batch}/reject', [ExamController::class, 'rejectBatch'])->name('batch.reject');
+            Route::post('/{id}/approve', [ExamController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [ExamController::class, 'reject'])->name('reject');
+        });
     });
 
     // Vessels
@@ -56,24 +60,24 @@ Route::middleware('check.api.auth')->group(function () {
         Route::get('/export/pdf', [VesselController::class, 'exportPdf'])->name('export.pdf');
     });
 
-    // Users
-    Route::prefix('users')->name('users.')->group(function () {
+    // Users — shore (admin) accounts only.
+    Route::prefix('users')->name('users.')->middleware('require.shore.role')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/export/excel', [UserController::class, 'exportExcel'])->name('export.excel');
         Route::get('/export/pdf', [UserController::class, 'exportPdf'])->name('export.pdf');
-        
+
         // ================= CREATE USER (NEW ROUTES) =================
         Route::get('/create', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
-        
+
         // Edit & Update User
         Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
         Route::put('/{id}', [UserController::class, 'update'])->name('update');
-        
+
         // Update Password
         Route::get('/{id}/edit-password', [UserController::class, 'editPassword'])->name('edit-password');
         Route::put('/{id}/password', [UserController::class, 'updatePassword'])->name('update-password');
-        
+
         // Delete User
         Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
     });

@@ -72,6 +72,8 @@ class AuthController extends Controller
                 'api_user' => $apiData['user'] ?? [],
                 'user_name' => $apiData['user']['username'] ?? $apiData['user']['name'] ?? $request->login,
                 'user_email' => $apiData['user']['email'] ?? '',
+                'user_id' => $apiData['user']['id'] ?? null,
+                'user_role' => $apiData['user']['role'] ?? null,
                 'login_time' => now(),
             ]);
             
@@ -177,12 +179,13 @@ class AuthController extends Controller
     private function clearSession()
     {
         session()->forget([
-            'api_token', 
+            'api_token',
             'api_token_expires_at',
-            'api_user', 
-            'user_name', 
+            'api_user',
+            'user_name',
             'user_email',
             'user_id',
+            'user_role',
             'login_time'
         ]);
     }

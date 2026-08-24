@@ -28,103 +28,36 @@ class ExamController extends Controller
         $perPage = 20;
         $currentPage = (int) $request->get('page', 1);
 
-        $result = $this->api->getExams([
-            'per_page' => $perPage,
+        // All active filters are sent to the API so it can filter and paginate
+        // server-side across the full result set, not just the current page.
+        $result = $this->api->getExams(array_filter([
+            'search' => $search,
+            'vessel_name' => $vesselName,
+            'review_status' => $reviewStatus,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
             'page' => $currentPage,
-        ]);
-        $allExams = $result['data']['data'] ?? $result['data'] ?? [];
-        if (!is_array($allExams)) $allExams = [];
-        $meta = $result['data']['meta'] ?? null;
+            'per_page' => $perPage,
+        ], fn ($v) => $v !== null && $v !== ''));
 
-        // Vessel dropdown options are always derived from the full set, not just this page.
-        $vessels = collect($allExams)->pluck('vessel_name')->unique()->filter()->sort()->values()->toArray();
+        $exams = $result['data']['data'] ?? $result['data'] ?? [];
+        if (!is_array($exams)) $exams = [];
+        $meta = $result['data']['meta'] ?? [];
 
-        if ($meta) {
-            // New paginated API shape: filtering already happened server-side where supported.
-            $examsCollection = collect($allExams);
+        $paginatedExams = new LengthAwarePaginator(
+            collect($exams)->values(),
+            $meta['total'] ?? count($exams),
+            $meta['per_page'] ?? $perPage,
+            $meta['current_page'] ?? $currentPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
+        );
 
-            if ($search) {
-                $examsCollection = $examsCollection->filter(function ($e) use ($search) {
-                    $s = strtolower($search);
-                    return str_contains(strtolower($e['exam_id'] ?? ''), $s)
-                        || str_contains(strtolower($e['vessel_name'] ?? ''), $s)
-                        || str_contains(strtolower($e['submitted_by'] ?? ''), $s)
-                        || str_contains(strtolower($e['person_in_charge'] ?? ''), $s);
-                });
-            }
-
-            if ($vesselName) {
-                $examsCollection = $examsCollection->filter(fn($e) => stripos($e['vessel_name'] ?? '', $vesselName) !== false);
-            }
-
-            if ($dateFrom) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') >= $dateFrom);
-            }
-
-            if ($dateTo) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') <= $dateTo . ' 23:59:59');
-            }
-
-            if ($reviewStatus) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['review_status'] ?? 'pending') === $reviewStatus);
-            }
-
-            $paginatedExams = new LengthAwarePaginator(
-                $examsCollection->values(),
-                $meta['total'] ?? count($allExams),
-                $meta['per_page'] ?? $perPage,
-                $meta['current_page'] ?? $currentPage,
-                ['path' => LengthAwarePaginator::resolveCurrentPath()]
-            );
-        } else {
-            // Backward compatible fallback: the live API may still return the old,
-            // unpaginated shape (all exams in one response). Fetch everything once and
-            // paginate/filter client-side like before.
-            $allResult = $this->api->getExams();
-            $allExams = $allResult['data']['data'] ?? $allResult['data'] ?? [];
-            if (!is_array($allExams)) $allExams = [];
-
-            $vessels = collect($allExams)->pluck('vessel_name')->unique()->filter()->sort()->values()->toArray();
-
-            $examsCollection = collect($allExams)->sortByDesc(function ($exam) {
-                return strtotime($exam['submitted_date'] ?? '1970-01-01');
-            })->values();
-
-            if ($search) {
-                $examsCollection = $examsCollection->filter(function ($e) use ($search) {
-                    $s = strtolower($search);
-                    return str_contains(strtolower($e['exam_id'] ?? ''), $s)
-                        || str_contains(strtolower($e['vessel_name'] ?? ''), $s)
-                        || str_contains(strtolower($e['submitted_by'] ?? ''), $s)
-                        || str_contains(strtolower($e['person_in_charge'] ?? ''), $s);
-                });
-            }
-
-            if ($vesselName) {
-                $examsCollection = $examsCollection->filter(fn($e) => stripos($e['vessel_name'] ?? '', $vesselName) !== false);
-            }
-
-            if ($dateFrom) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') >= $dateFrom);
-            }
-
-            if ($dateTo) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') <= $dateTo . ' 23:59:59');
-            }
-
-            if ($reviewStatus) {
-                $examsCollection = $examsCollection->filter(fn($e) => ($e['review_status'] ?? 'pending') === $reviewStatus);
-            }
-
-            $currentPageItems = $examsCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
-            $paginatedExams = new LengthAwarePaginator(
-                $currentPageItems,
-                $examsCollection->count(),
-                $perPage,
-                $currentPage,
-                ['path' => LengthAwarePaginator::resolveCurrentPath()]
-            );
-        }
+        // Vessel dropdown is sourced from the API's own distinct-vessel endpoint (scoped to
+        // the caller), not from whatever exams happen to be on the current page.
+        $vesselsResult = $this->api->getVessels();
+        $vessels = $vesselsResult['data']['data'] ?? $vesselsResult['data'] ?? [];
+        if (!is_array($vessels)) $vessels = [];
+        $vessels = collect($vessels)->filter()->sort()->values()->toArray();
 
         return view('exams.index', [
             'exams' => $paginatedExams,
