@@ -23,35 +23,19 @@ class InspectionImageController extends Controller
     public function index(Request $request)
     {
         $vessels = $this->vesselOptions();
-        $vesselId = $request->get('vessel_id');
         $vesselName = $request->get('vessel_name');
+
+        // Default to the first known image-vessel so the page isn't empty on first load.
+        if (!$vesselName && !empty($vessels)) {
+            $vesselName = $vessels[0]['name'];
+        }
 
         try {
             $currentPage = (int)$request->get('page', 1);
 
-            if (!$vesselId && $vesselName) {
-                $match = collect($vessels)->firstWhere('name', $vesselName);
-                $vesselId = $match['id'] ?? null;
-            }
-
-            if (!$vesselId && !$vesselName && !empty($vessels)) {
-                $vesselId = $vessels[0]['id'];
-                $vesselName = $vessels[0]['name'];
-            }
-
-            if (!$vesselId) {
-                return view('images.index', [
-                    'images' => [],
-                    'currentPage' => 1,
-                    'lastPage' => 1,
-                    'total' => 0,
-                    'apiError' => null,
-                    'vessels' => $vessels,
-                    'selectedVesselName' => $vesselName,
-                ]);
-            }
-
-            $result = $this->api->getInspectionImagesByVessel((int)$vesselId, array_filter([
+            // Images are keyed on vessel_name (vessel_id is a dead column). A null
+            // vessel_name lists everything the caller may see (shore = all).
+            $result = $this->api->getInspectionImages(array_filter([
                 'vessel_name' => $vesselName,
                 'per_page' => $this->perPage,
                 'page' => $currentPage,
@@ -121,21 +105,18 @@ class InspectionImageController extends Controller
     protected function vesselOptions(): array
     {
         try {
-            $result = $this->api->getExams(['per_page' => 500]);
-            $exams = $result['data']['data'] ?? $result['data'] ?? [];
-            if (!is_array($exams)) {
-                $exams = [];
+            // Source the picker from the images themselves (their vessel_name),
+            // not from exams -- exam vessel_names need not match uploaded photos,
+            // and tb_exam has no vessel_id to key the old getByVessel path on.
+            $result = $this->api->getInspectionImageVessels();
+            $names = $result['data'] ?? [];
+            if (!is_array($names)) {
+                $names = [];
             }
 
-            return collect($exams)
-                ->filter(fn ($e) => !empty($e['vessel_name'] ?? null))
-                ->groupBy('vessel_name')
-                ->map(fn ($group, $name) => [
-                    'id' => $group->first()['vessel_id'] ?? null,
-                    'name' => $name,
-                ])
-                ->values()
-                ->sortBy('name')
+            return collect($names)
+                ->filter(fn ($n) => is_string($n) && trim($n) !== '')
+                ->map(fn ($n) => ['id' => null, 'name' => $n])
                 ->values()
                 ->toArray();
         } catch (\Exception $e) {

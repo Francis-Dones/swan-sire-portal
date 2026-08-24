@@ -284,6 +284,15 @@ class ApiService
         return $this->get("inspection-images/vessel/{$vesselId}", $params);
     }
 
+    /**
+     * Distinct vessel_name list present in inspection_images, for the image
+     * vessel picker. Scoping is enforced server-side by the API.
+     */
+    public function getInspectionImageVessels(): array
+    {
+        return $this->get('inspection-images/vessels');
+    }
+
     public function getInspectionImagesByInspection(int $inspectionId): array
     {
         return $this->get("inspection-images/inspection/{$inspectionId}");
