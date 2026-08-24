@@ -375,6 +375,14 @@
         </div>
         @endif
 
+        @if(session('warning'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)"
+             class="anim-fade mx-4 md:mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center justify-between gap-3 text-sm text-amber-700 dark:text-amber-300">
+            <span class="flex items-center gap-2"><i class="ti ti-alert-triangle text-lg"></i> {{ session('warning') }}</span>
+            <button @click="show=false" class="text-amber-400 hover:text-amber-600 flex-shrink-0"><i class="ti ti-x"></i></button>
+        </div>
+        @endif
+
         <!-- ── Page Content ── -->
         <main class="flex-1 overflow-y-auto p-4 md:p-6">
             @yield('content')

@@ -63,6 +63,15 @@ class UserController extends Controller
             'token_type' => $request->token_type,
         ]);
 
+        // Post-create verification ping: confirm the configured API is actually reachable,
+        // since mobile apps read users through it, not through this portal's local database.
+        $apiCheck = $this->api->getUser();
+        if (!($apiCheck['success'] ?? false) && ($apiCheck['status'] ?? 0) !== 401) {
+            return redirect()->route('users.index')->with('warning',
+                'User created locally but the configured API is unreachable — check EXTERNAL_API_BASE_URL; mobile apps may not see this vessel user.'
+            );
+        }
+
         return redirect()->route('users.index')
             ->with('success', 'User created successfully!');
     }
@@ -128,9 +137,11 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
-        
-        // Prevent deleting yourself
-        if (auth()->id() === $user->id) {
+
+        // Prevent deleting yourself. The portal authenticates via session (api_user/user_id),
+        // not Laravel's auth guard, so compare against the session-stored id instead of auth()->id().
+        $currentUserId = session('user_id') ?? session('api_user.id');
+        if ($currentUserId !== null && (int) $currentUserId === (int) $user->id) {
             return redirect()->route('users.index')
                 ->with('error', 'You cannot delete your own account!');
         }

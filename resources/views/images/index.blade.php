@@ -5,9 +5,9 @@
 @section('page-subtitle', 'Browse & manage inspection photos')
 
 @section('content')
-<div class="space-y-4" x-data="{ 
-    modalOpen: false, 
-    modalImg: '', 
+<div class="space-y-4" x-data="{
+    modalOpen: false,
+    modalImgSrc: '',
     modalName: '',
     modalMime: '',
     modalVessel: '',
@@ -16,21 +16,36 @@
     modalInspectionLoc: '',
     modalInspector: '',
     modalRemarks: '',
-    viewMode: 'table',
-    downloadImage(base64Data, fileName) {
-        // Simple download using data URL
-        const link = document.createElement('a');
-        link.href = 'data:image/jpeg;base64,' + base64Data;
-        link.download = fileName.endsWith('.jpg') ? fileName : fileName + '.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    modalDownloadUrl: '',
+    viewMode: 'table'
 }">
 
     @if(isset($apiError) && $apiError)
     <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 rounded-xl p-4">
         <i class="ti ti-alert-triangle"></i> {{ $apiError }}
+    </div>
+    @endif
+
+    <!-- VESSEL SELECTOR -->
+    <form method="GET" action="{{ route('images.index') }}" class="bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <label class="text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5 shrink-0">
+            <i class="ti ti-ship"></i> Vessel
+        </label>
+        <select name="vessel_name" onchange="this.form.submit()"
+                class="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white">
+            @if(empty($vessels ?? []))
+            <option value="">No vessels found</option>
+            @endif
+            @foreach(($vessels ?? []) as $v)
+            <option value="{{ $v['name'] }}" {{ ($selectedVesselName ?? '') === $v['name'] ? 'selected' : '' }}>{{ $v['name'] }}</option>
+            @endforeach
+        </select>
+    </form>
+
+    @if(empty($vessels ?? []) || empty($selectedVesselName ?? null))
+    <div class="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <i class="ti ti-ship text-5xl text-gray-400"></i>
+        <p class="mt-2 text-gray-500">Select a vessel to view its inspection images.</p>
     </div>
     @endif
 
@@ -46,6 +61,7 @@
     </div>
     @endif
 
+    @if(!empty($selectedVesselName ?? null))
     <!-- TOOLBAR -->
     <div class="flex flex-wrap justify-between items-center gap-3">
         <div class="flex items-center gap-4">
@@ -162,24 +178,12 @@
                                     </div>
                                 </td>
                                 @endif
-                                <!-- Thumbnail -->
+                                <!-- Thumbnail - served straight from the API via the raw proxy, no base64 fetch -->
                                 <td class="px-4 py-3">
-                                    <div x-data="{ loaded: false, imgData: '' }"
-                                         x-init="() => {
-                                             fetch('{{ route("images.data", $imgId) }}')
-                                                 .then(res => res.json())
-                                                 .then(data => {
-                                                     if (data.success) {
-                                                         imgData = data.image_data;
-                                                         loaded = true;
-                                                     }
-                                                 });
-                                         }"
-                                         class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-                                         @click="if(loaded && imgData) { 
-                                             modalOpen=true; 
-                                             modalImg=imgData; 
-                                             modalName='{{ addslashes($imgName) }}'; 
+                                    <div class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                                         @click="modalOpen=true;
+                                             modalImgSrc='{{ route('images.raw', $imgId) }}';
+                                             modalName='{{ addslashes($imgName) }}';
                                              modalMime='{{ $img['image_mime_type'] ?? 'image/jpeg' }}';
                                              modalVessel='{{ addslashes($vesselName) }}';
                                              modalInspectionId='{{ addslashes($inspectionId) }}';
@@ -187,18 +191,8 @@
                                              modalInspectionLoc='{{ addslashes($displayLocation) }}';
                                              modalInspector='{{ addslashes($inspectorName) }}';
                                              modalRemarks='{{ addslashes($remarks) }}';
-                                         }">
-                                        <template x-if="loaded && imgData">
-                                            <img :src="'data:image/jpeg;base64,' + imgData" class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!loaded">
-                                            <div class="w-full h-full flex items-center justify-center text-gray-400">
-                                                <svg class="animate-spin h-6 w-6" viewBox="0 0 24 24">
-                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
-                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                                </svg>
-                                            </div>
-                                        </template>
+                                             modalDownloadUrl='{{ route('images.download', $imgId) }}';">
+                                        <img src="{{ route('images.raw', $imgId) }}" loading="lazy" class="w-full h-full object-cover">
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-sm">{{ $inspectionId }}</td>
@@ -272,27 +266,9 @@
                     $displayLocation = !empty($inspectionLoc) ? $inspectionLoc : 'N/A';
                 @endphp
                 <div class="bg-white dark:bg-gray-800 rounded-lg border shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition"
-                     x-data="{ loaded: false, imgData: '' }"
-                     x-init="() => {
-                         const observer = new IntersectionObserver((entries) => {
-                             if (entries[0].isIntersecting && !loaded) {
-                                 fetch('{{ route("images.data", $imgId) }}')
-                                     .then(res => res.json())
-                                     .then(data => {
-                                         if (data.success) {
-                                             imgData = data.image_data;
-                                             loaded = true;
-                                         }
-                                     });
-                                 observer.disconnect();
-                             }
-                         });
-                         observer.observe($el);
-                     }"
-                     @click="if(loaded && imgData) { 
-                         modalOpen=true; 
-                         modalImg=imgData; 
-                         modalName='{{ addslashes($imgName) }}'; 
+                     @click="modalOpen=true;
+                         modalImgSrc='{{ route('images.raw', $imgId) }}';
+                         modalName='{{ addslashes($imgName) }}';
                          modalMime='{{ $img['image_mime_type'] ?? 'image/jpeg' }}';
                          modalVessel='{{ addslashes($vesselName) }}';
                          modalInspectionId='{{ addslashes($inspectionId) }}';
@@ -300,23 +276,13 @@
                          modalInspectionLoc='{{ addslashes($displayLocation) }}';
                          modalInspector='{{ addslashes($inspectorName) }}';
                          modalRemarks='{{ addslashes($remarks) }}';
-                     }">
-                    
+                         modalDownloadUrl='{{ route('images.download', $imgId) }}';">
+
+                    <!-- Thumbnail served straight from the API via the raw proxy, no base64 fetch -->
                     <div class="aspect-square bg-gray-100 flex items-center justify-center">
-                        <template x-if="loaded && imgData">
-                            <img :src="'data:image/jpeg;base64,' + imgData" class="w-full h-full object-cover">
-                        </template>
-                        <template x-if="!loaded">
-                            <div class="text-gray-400 text-center">
-                                <svg class="animate-spin h-8 w-8 mx-auto" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                </svg>
-                                <p class="text-xs mt-1">Loading...</p>
-                            </div>
-                        </template>
+                        <img src="{{ route('images.raw', $imgId) }}" loading="lazy" class="w-full h-full object-cover">
                     </div>
-                    
+
                     <div class="p-3">
                         <p class="text-sm font-medium truncate">{{ $imgName }}</p>
                         <p class="text-xs text-gray-500">📋 {{ $inspectionId }}</p>
@@ -341,7 +307,7 @@
     @if(isset($lastPage) && $lastPage > 1)
     <div class="flex justify-center gap-2 mt-6">
         @for($i = 1; $i <= $lastPage; $i++)
-            <a href="{{ route('images.index', ['page' => $i]) }}" 
+            <a href="{{ route('images.index', ['page' => $i, 'vessel_name' => $selectedVesselName]) }}"
                class="px-3 py-1 rounded {{ $currentPage == $i ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300' }}">
                 {{ $i }}
             </a>
@@ -355,6 +321,7 @@
         <p class="mt-2 text-gray-500">No images found</p>
     </div>
     @endif
+    @endif
 
     <!-- MODAL WITH DOWNLOAD BUTTON -->
     <div x-show="modalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" 
@@ -365,17 +332,17 @@
                 <h3 class="font-semibold truncate" x-text="modalName"></h3>
                 <div class="flex items-center gap-2">
                     <!-- DOWNLOAD BUTTON -->
-                    <button @click="downloadImage(modalImg, modalName)" 
-                            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 transition">
+                    <a :href="modalDownloadUrl"
+                       class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm flex items-center gap-1 transition">
                         <i class="ti ti-download"></i> Download JPG
-                    </button>
+                    </a>
                     <button @click="modalOpen=false" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
                 </div>
             </div>
             <div class="p-4">
                 <!-- Image Display -->
                 <div class="flex justify-center mb-4">
-                    <img :src="'data:image/jpeg;base64,' + modalImg" class="max-w-full max-h-[50vh] object-contain" id="modalImage">
+                    <img :src="modalImgSrc" class="max-w-full max-h-[50vh] object-contain" id="modalImage">
                 </div>
                 
                 <!-- Image Details -->

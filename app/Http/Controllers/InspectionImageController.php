@@ -22,23 +22,53 @@ class InspectionImageController extends Controller
 
     public function index(Request $request)
     {
+        $vessels = $this->vesselOptions();
+        $vesselId = $request->get('vessel_id');
+        $vesselName = $request->get('vessel_name');
+
         try {
             $currentPage = (int)$request->get('page', 1);
-            $defaultVesselId = 1;
-            
-            $result = $this->api->getInspectionImagesByVessel($defaultVesselId);
-            
+
+            if (!$vesselId && $vesselName) {
+                $match = collect($vessels)->firstWhere('name', $vesselName);
+                $vesselId = $match['id'] ?? null;
+            }
+
+            if (!$vesselId && !$vesselName && !empty($vessels)) {
+                $vesselId = $vessels[0]['id'];
+                $vesselName = $vessels[0]['name'];
+            }
+
+            if (!$vesselId) {
+                return view('images.index', [
+                    'images' => [],
+                    'currentPage' => 1,
+                    'lastPage' => 1,
+                    'total' => 0,
+                    'apiError' => null,
+                    'vessels' => $vessels,
+                    'selectedVesselName' => $vesselName,
+                ]);
+            }
+
+            $result = $this->api->getInspectionImagesByVessel((int)$vesselId, array_filter([
+                'vessel_name' => $vesselName,
+                'per_page' => $this->perPage,
+                'page' => $currentPage,
+            ]));
+
             $allImages = [];
             $apiError = null;
-            
+
             if ($result && isset($result['data'])) {
                 $allImages = $result['data']['data'] ?? $result['data'] ?? [];
                 if (!is_array($allImages)) {
                     $allImages = [];
                 }
             }
-            
+
             foreach ($allImages as &$img) {
+                unset($img['image_data'], $img['base64_image'], $img['image'], $img['full_base64']);
                 if (!isset($img['inspection_loc']) && isset($img['inspectionLoc'])) {
                     $img['inspection_loc'] = $img['inspectionLoc'];
                 }
@@ -52,26 +82,129 @@ class InspectionImageController extends Controller
                     $img['vessel_name'] = $img['vesselName'];
                 }
             }
-            
-            $total = count($allImages);
-            $lastPage = max(1, ceil($total / $this->perPage));
-            
-            $offset = ($currentPage - 1) * $this->perPage;
-            $images = array_slice($allImages, $offset, $this->perPage);
-            
-            return view('images.index', compact('images', 'currentPage', 'lastPage', 'total', 'apiError'));
-            
+            unset($img);
+
+            // Old API shape returns the full unpaginated list; new shape carries meta.
+            $meta = $result['data']['meta'] ?? null;
+            if ($meta) {
+                $total = $meta['total'] ?? count($allImages);
+                $lastPage = $meta['last_page'] ?? 1;
+                $images = $allImages;
+            } else {
+                $total = count($allImages);
+                $lastPage = max(1, (int)ceil($total / $this->perPage));
+                $offset = ($currentPage - 1) * $this->perPage;
+                $images = array_slice($allImages, $offset, $this->perPage);
+            }
+
+            return view('images.index', compact('images', 'currentPage', 'lastPage', 'total', 'apiError', 'vessels', 'vesselName'))
+                ->with('selectedVesselName', $vesselName);
+
         } catch (\Exception $e) {
             Log::error('Image index error: ' . $e->getMessage());
-            
+
             return view('images.index', [
                 'images' => [],
                 'currentPage' => 1,
                 'lastPage' => 1,
                 'total' => 0,
-                'apiError' => 'Unable to load images: ' . $e->getMessage()
+                'apiError' => 'Unable to load images: ' . $e->getMessage(),
+                'vessels' => $vessels,
+                'selectedVesselName' => $vesselName,
             ]);
         }
+    }
+
+    /**
+     * Derive the vessel list (id + name) from exam records, the same way VesselController does.
+     */
+    protected function vesselOptions(): array
+    {
+        try {
+            $result = $this->api->getExams(['per_page' => 500]);
+            $exams = $result['data']['data'] ?? $result['data'] ?? [];
+            if (!is_array($exams)) {
+                $exams = [];
+            }
+
+            return collect($exams)
+                ->filter(fn ($e) => !empty($e['vessel_name'] ?? null))
+                ->groupBy('vessel_name')
+                ->map(fn ($group, $name) => [
+                    'id' => $group->first()['vessel_id'] ?? null,
+                    'name' => $name,
+                ])
+                ->values()
+                ->sortBy('name')
+                ->values()
+                ->toArray();
+        } catch (\Exception $e) {
+            Log::error('Vessel options error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Resolve a vessel_id for export endpoints from the request, or fall back to the first
+     * known vessel instead of a hardcoded id.
+     */
+    protected function resolveVesselIdForExport(Request $request): ?int
+    {
+        $vesselId = $request->get('vessel_id');
+        $vesselName = $request->get('vessel_name');
+
+        if ($vesselId) {
+            return (int) $vesselId;
+        }
+
+        $vessels = $this->vesselOptions();
+
+        if ($vesselName) {
+            $match = collect($vessels)->firstWhere('name', $vesselName);
+            return $match['id'] ?? null;
+        }
+
+        return $vessels[0]['id'] ?? null;
+    }
+
+    /**
+     * Stream a single image straight from the API without embedding base64 in the page.
+     */
+    public function raw($id)
+    {
+        $cacheKey = 'image_raw_' . $id;
+        $cached = Cache::get($cacheKey);
+
+        if (!$cached) {
+            $result = $this->api->getInspectionImage($id);
+            $image = $result['data']['data'] ?? $result['data'] ?? null;
+
+            if (!$image) {
+                abort(404, 'Image not found');
+            }
+
+            $imageData = $image['image_data'] ?? $image['base64_image'] ?? $image['image'] ?? $image['data'] ?? null;
+
+            if (empty($imageData)) {
+                abort(404, 'No image data available');
+            }
+
+            $imageData = preg_replace('/^data:[^;]+;base64,/', '', $imageData);
+            $imageData = preg_replace('/\s+/', '', $imageData);
+
+            $cached = [
+                'mime' => $image['image_mime_type'] ?? 'image/jpeg',
+                'data' => $imageData,
+            ];
+
+            Cache::put($cacheKey, $cached, 300);
+        }
+
+        $binary = base64_decode($cached['data']);
+
+        return response($binary, 200)
+            ->header('Content-Type', $cached['mime'])
+            ->header('Cache-Control', 'private, max-age=300');
     }
 
     public function getImageData($id)
@@ -271,8 +404,13 @@ class InspectionImageController extends Controller
     public function exportExcel(Request $request)
     {
         try {
-            $defaultVesselId = 1;
-            $result = $this->api->getInspectionImagesByVessel($defaultVesselId);
+            $vesselId = $this->resolveVesselIdForExport($request);
+            if (!$vesselId) {
+                return back()->with('error', 'Select a vessel before exporting.');
+            }
+            $result = $this->api->getInspectionImagesByVessel($vesselId, array_filter([
+                'vessel_name' => $request->get('vessel_name'),
+            ]));
             $images = $result['data']['data'] ?? $result['data'] ?? [];
             
             if (!is_array($images)) {
@@ -300,8 +438,13 @@ class InspectionImageController extends Controller
     public function exportPdf(Request $request)
     {
         try {
-            $defaultVesselId = 1;
-            $result = $this->api->getInspectionImagesByVessel($defaultVesselId);
+            $vesselId = $this->resolveVesselIdForExport($request);
+            if (!$vesselId) {
+                return back()->with('error', 'Select a vessel before exporting.');
+            }
+            $result = $this->api->getInspectionImagesByVessel($vesselId, array_filter([
+                'vessel_name' => $request->get('vessel_name'),
+            ]));
             $images = $result['data']['data'] ?? $result['data'] ?? [];
             
             if (!is_array($images)) {

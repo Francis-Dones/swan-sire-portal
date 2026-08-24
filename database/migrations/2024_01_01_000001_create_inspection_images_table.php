@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
+        if (Schema::hasTable('inspection_images')) { return; }
         Schema::create('inspection_images', function (Blueprint $table) {
             $table->id();
             $table->integer('vessel_id')->nullable()->index();

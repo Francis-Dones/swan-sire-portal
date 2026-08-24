@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
+        if (Schema::hasTable('tb_exam')) { return; }
         Schema::create('tb_exam', function (Blueprint $table) {
             $table->id();
             $table->string('exam_id')->nullable()->index();

@@ -26,6 +26,7 @@ Route::middleware('check.api.auth')->group(function () {
     Route::prefix('images')->name('images.')->group(function () {
         Route::get('/', [InspectionImageController::class, 'index'])->name('index');
         Route::get('/data/{id}', [InspectionImageController::class, 'getImageData'])->name('data');
+        Route::get('/{id}/raw', [InspectionImageController::class, 'raw'])->name('raw');
         Route::get('/{id}', [InspectionImageController::class, 'show'])->name('show');
         Route::delete('/{id}', [InspectionImageController::class, 'destroy'])->name('destroy');
         Route::get('/export/excel', [InspectionImageController::class, 'exportExcel'])->name('export.excel');
@@ -37,13 +38,14 @@ Route::middleware('check.api.auth')->group(function () {
     // Exams
     Route::prefix('exams')->name('exams.')->group(function () {
         Route::get('/', [ExamController::class, 'index'])->name('index');
-        Route::get('/{id}', [ExamController::class, 'show'])->name('show');
-        Route::get('/{examId}/questionnaire', [ExamController::class, 'questionnaire'])->name('questionnaire');
-        Route::post('/{examId}/questionnaire', [ExamController::class, 'saveQuestionnaire'])->name('save-questionnaire');
-        Route::get('/{examId}/report', [ExamController::class, 'report'])->name('report');
         Route::get('/export/excel', [ExamController::class, 'exportExcel'])->name('export.excel');
         Route::get('/export/pdf', [ExamController::class, 'exportPdf'])->name('export.pdf');
         Route::post('/import', [ExamController::class, 'import'])->name('import');
+        Route::post('/batch/{batch}/approve', [ExamController::class, 'approveBatch'])->name('batch.approve');
+        Route::post('/batch/{batch}/reject', [ExamController::class, 'rejectBatch'])->name('batch.reject');
+        Route::get('/{id}', [ExamController::class, 'show'])->name('show');
+        Route::post('/{id}/approve', [ExamController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [ExamController::class, 'reject'])->name('reject');
     });
 
     // Vessels

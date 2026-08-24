@@ -24,54 +24,107 @@ class ExamController extends Controller
         $vesselName = $request->get('vessel_name');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+        $reviewStatus = $request->get('review_status');
+        $perPage = 20;
+        $currentPage = (int) $request->get('page', 1);
 
-        $result = $this->api->getExams();
+        $result = $this->api->getExams([
+            'per_page' => $perPage,
+            'page' => $currentPage,
+        ]);
         $allExams = $result['data']['data'] ?? $result['data'] ?? [];
         if (!is_array($allExams)) $allExams = [];
+        $meta = $result['data']['meta'] ?? null;
 
-        // Client-side filtering since API may not support all filters
-        $examsCollection = collect($allExams);
-
-        // SORT BY DATE - NEWEST FIRST (descending order)
-        $examsCollection = $examsCollection->sortByDesc(function ($exam) {
-            return strtotime($exam['submitted_date'] ?? '1970-01-01');
-        })->values();
-
-        if ($search) {
-            $examsCollection = $examsCollection->filter(function ($e) use ($search) {
-                $s = strtolower($search);
-                return str_contains(strtolower($e['exam_id'] ?? ''), $s)
-                    || str_contains(strtolower($e['vessel_name'] ?? ''), $s)
-                    || str_contains(strtolower($e['submitted_by'] ?? ''), $s)
-                    || str_contains(strtolower($e['person_in_charge'] ?? ''), $s);
-            });
-        }
-
-        if ($vesselName) {
-            $examsCollection = $examsCollection->filter(fn($e) => stripos($e['vessel_name'] ?? '', $vesselName) !== false);
-        }
-
-        if ($dateFrom) {
-            $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') >= $dateFrom);
-        }
-
-        if ($dateTo) {
-            $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') <= $dateTo . ' 23:59:59');
-        }
-
+        // Vessel dropdown options are always derived from the full set, not just this page.
         $vessels = collect($allExams)->pluck('vessel_name')->unique()->filter()->sort()->values()->toArray();
-        
-        // Paginate the filtered results (20 per page)
-        $perPage = 20;
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $currentPageItems = $examsCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        $paginatedExams = new LengthAwarePaginator(
-            $currentPageItems,
-            $examsCollection->count(),
-            $perPage,
-            $currentPage,
-            ['path' => LengthAwarePaginator::resolveCurrentPath()]
-        );
+
+        if ($meta) {
+            // New paginated API shape: filtering already happened server-side where supported.
+            $examsCollection = collect($allExams);
+
+            if ($search) {
+                $examsCollection = $examsCollection->filter(function ($e) use ($search) {
+                    $s = strtolower($search);
+                    return str_contains(strtolower($e['exam_id'] ?? ''), $s)
+                        || str_contains(strtolower($e['vessel_name'] ?? ''), $s)
+                        || str_contains(strtolower($e['submitted_by'] ?? ''), $s)
+                        || str_contains(strtolower($e['person_in_charge'] ?? ''), $s);
+                });
+            }
+
+            if ($vesselName) {
+                $examsCollection = $examsCollection->filter(fn($e) => stripos($e['vessel_name'] ?? '', $vesselName) !== false);
+            }
+
+            if ($dateFrom) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') >= $dateFrom);
+            }
+
+            if ($dateTo) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') <= $dateTo . ' 23:59:59');
+            }
+
+            if ($reviewStatus) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['review_status'] ?? 'pending') === $reviewStatus);
+            }
+
+            $paginatedExams = new LengthAwarePaginator(
+                $examsCollection->values(),
+                $meta['total'] ?? count($allExams),
+                $meta['per_page'] ?? $perPage,
+                $meta['current_page'] ?? $currentPage,
+                ['path' => LengthAwarePaginator::resolveCurrentPath()]
+            );
+        } else {
+            // Backward compatible fallback: the live API may still return the old,
+            // unpaginated shape (all exams in one response). Fetch everything once and
+            // paginate/filter client-side like before.
+            $allResult = $this->api->getExams();
+            $allExams = $allResult['data']['data'] ?? $allResult['data'] ?? [];
+            if (!is_array($allExams)) $allExams = [];
+
+            $vessels = collect($allExams)->pluck('vessel_name')->unique()->filter()->sort()->values()->toArray();
+
+            $examsCollection = collect($allExams)->sortByDesc(function ($exam) {
+                return strtotime($exam['submitted_date'] ?? '1970-01-01');
+            })->values();
+
+            if ($search) {
+                $examsCollection = $examsCollection->filter(function ($e) use ($search) {
+                    $s = strtolower($search);
+                    return str_contains(strtolower($e['exam_id'] ?? ''), $s)
+                        || str_contains(strtolower($e['vessel_name'] ?? ''), $s)
+                        || str_contains(strtolower($e['submitted_by'] ?? ''), $s)
+                        || str_contains(strtolower($e['person_in_charge'] ?? ''), $s);
+                });
+            }
+
+            if ($vesselName) {
+                $examsCollection = $examsCollection->filter(fn($e) => stripos($e['vessel_name'] ?? '', $vesselName) !== false);
+            }
+
+            if ($dateFrom) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') >= $dateFrom);
+            }
+
+            if ($dateTo) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['submitted_date'] ?? '') <= $dateTo . ' 23:59:59');
+            }
+
+            if ($reviewStatus) {
+                $examsCollection = $examsCollection->filter(fn($e) => ($e['review_status'] ?? 'pending') === $reviewStatus);
+            }
+
+            $currentPageItems = $examsCollection->slice(($currentPage - 1) * $perPage, $perPage)->values();
+            $paginatedExams = new LengthAwarePaginator(
+                $currentPageItems,
+                $examsCollection->count(),
+                $perPage,
+                $currentPage,
+                ['path' => LengthAwarePaginator::resolveCurrentPath()]
+            );
+        }
 
         return view('exams.index', [
             'exams' => $paginatedExams,
@@ -79,8 +132,66 @@ class ExamController extends Controller
             'search' => $search,
             'vesselName' => $vesselName,
             'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo
+            'dateTo' => $dateTo,
+            'reviewStatus' => $reviewStatus,
         ]);
+    }
+
+    public function approve(int $id)
+    {
+        $result = $this->api->reviewExam($id, 'approve', session('user_name', 'Unknown'));
+
+        if ($result['success'] ?? false) {
+            return back()->with('success', 'Exam approved.');
+        }
+
+        return back()->with('error', $this->reviewErrorMessage($result));
+    }
+
+    public function reject(int $id, Request $request)
+    {
+        $request->validate(['remarks' => 'required|string|max:1000']);
+
+        $result = $this->api->reviewExam($id, 'reject', session('user_name', 'Unknown'), $request->input('remarks'));
+
+        if ($result['success'] ?? false) {
+            return back()->with('success', 'Exam rejected.');
+        }
+
+        return back()->with('error', $this->reviewErrorMessage($result));
+    }
+
+    public function approveBatch(string $batch)
+    {
+        $result = $this->api->reviewExamBatch($batch, 'approve', session('user_name', 'Unknown'));
+
+        if ($result['success'] ?? false) {
+            $updated = $result['data']['updated'] ?? null;
+            return back()->with('success', $updated ? "Approved {$updated} exam(s) in this upload." : 'Upload approved.');
+        }
+
+        return back()->with('error', $this->reviewErrorMessage($result));
+    }
+
+    public function rejectBatch(string $batch, Request $request)
+    {
+        $request->validate(['remarks' => 'required|string|max:1000']);
+
+        $result = $this->api->reviewExamBatch($batch, 'reject', session('user_name', 'Unknown'), $request->input('remarks'));
+
+        if ($result['success'] ?? false) {
+            $updated = $result['data']['updated'] ?? null;
+            return back()->with('success', $updated ? "Rejected {$updated} exam(s) in this upload." : 'Upload rejected.');
+        }
+
+        return back()->with('error', $this->reviewErrorMessage($result));
+    }
+
+    private function reviewErrorMessage(array $result): string
+    {
+        return $result['data']['message']
+            ?? $result['error']
+            ?? 'Unable to update review status (status: ' . ($result['status'] ?? 'unknown') . ').';
     }
 
     public function show(int $id)

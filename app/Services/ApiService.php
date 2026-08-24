@@ -143,7 +143,8 @@ class ApiService
             ])->timeout($this->timeout)
             ->post($this->buildUrl('login'), [
                 'username' => $username,
-                'password' => $password
+                'password' => $password,
+                'device_name' => 'portal',
             ]);
             
             Log::info('External API login response', [
@@ -278,9 +279,9 @@ class ApiService
         return $this->get('inspection-images', $params);
     }
 
-    public function getInspectionImagesByVessel(int $vesselId): array
+    public function getInspectionImagesByVessel(int $vesselId, array $params = []): array
     {
-        return $this->get("inspection-images/vessel/{$vesselId}");
+        return $this->get("inspection-images/vessel/{$vesselId}", $params);
     }
 
     public function getInspectionImagesByInspection(int $inspectionId): array
@@ -322,7 +323,25 @@ class ApiService
 
     public function getExamsByDateRange(string $from, string $to): array
     {
-        return $this->post('exams/date-range', ['from' => $from, 'to' => $to]);
+        return $this->post('exams/date-range', ['start_date' => $from, 'end_date' => $to]);
+    }
+
+    public function reviewExam(int $id, string $action, string $reviewedBy, ?string $remarks = null): array
+    {
+        return $this->post("exams/{$id}/review", array_filter([
+            'action' => $action,
+            'reviewed_by' => $reviewedBy,
+            'remarks' => $remarks,
+        ], fn ($v) => $v !== null));
+    }
+
+    public function reviewExamBatch(string $uploadBatchId, string $action, string $reviewedBy, ?string $remarks = null): array
+    {
+        return $this->post("exams/batch/{$uploadBatchId}/review", array_filter([
+            'action' => $action,
+            'reviewed_by' => $reviewedBy,
+            'remarks' => $remarks,
+        ], fn ($v) => $v !== null));
     }
 
     public function createExam(array $data): array
