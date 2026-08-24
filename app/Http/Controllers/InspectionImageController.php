@@ -109,7 +109,9 @@ class InspectionImageController extends Controller
             // not from exams -- exam vessel_names need not match uploaded photos,
             // and tb_exam has no vessel_id to key the old getByVessel path on.
             $result = $this->api->getInspectionImageVessels();
-            $names = $result['data'] ?? [];
+            // ApiService wraps the API body under 'data', and the API body is
+            // itself {success, data:[...]} -- so the names live two levels deep.
+            $names = $result['data']['data'] ?? $result['data'] ?? [];
             if (!is_array($names)) {
                 $names = [];
             }
