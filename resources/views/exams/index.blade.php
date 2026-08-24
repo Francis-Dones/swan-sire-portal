@@ -180,7 +180,7 @@
                         <i class="ti ti-stack-2 text-indigo-600 dark:text-indigo-400 text-lg"></i>
                         <div>
                             <p class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">Upload Batch</p>
-                            <p class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ Str::limit($group['batch_id'], 18) }}</p>
+                            <p class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ \Illuminate\Support\Str::limit($group['batch_id'], 18) }}</p>
                         </div>
                     </div>
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-800/50 text-indigo-700 dark:text-indigo-300">
@@ -294,7 +294,7 @@
                                     <div class="flex items-center gap-2">
                                         <i class="ti ti-stack-2 text-indigo-600 dark:text-indigo-400"></i>
                                         <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">Upload Batch</span>
-                                        <span class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ Str::limit($group['batch_id'], 24) }}</span>
+                                        <span class="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{{ \Illuminate\Support\Str::limit($group['batch_id'], 24) }}</span>
                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-800/50 text-indigo-700 dark:text-indigo-300">
                                             <i class="ti ti-users text-xs"></i> {{ count($group['items']) }} PIC
                                         </span>
