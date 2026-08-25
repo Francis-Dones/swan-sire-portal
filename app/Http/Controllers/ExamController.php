@@ -52,6 +52,17 @@ class ExamController extends Controller
             ['path' => LengthAwarePaginator::resolveCurrentPath()]
         );
 
+        // The API delivers ONE flat row per person-in-charge (PIC); every PIC of a single
+        // questionnaire upload shares the same vessel_name and upload_batch_id. Rather than
+        // repeat the vessel on every row, we fold the current page into a
+        // vessel -> upload-batch -> PIC tree so the vessel name is shown once.
+        //
+        // NOTE: the API paginates by ROW, so a very large batch could straddle a page
+        // boundary and appear (partially) on two pages. Batches are normally a handful of
+        // PICs, so we group only the rows on the current page and keep each page
+        // self-consistent. Batch approve/reject still acts on the ENTIRE batch API-side.
+        $vesselGroups = $this->groupExamsByVesselAndBatch($exams);
+
         // Vessel dropdown is sourced from the API's own distinct-vessel endpoint (scoped to
         // the caller), not from whatever exams happen to be on the current page.
         $vesselsResult = $this->api->getVessels();
@@ -61,6 +72,7 @@ class ExamController extends Controller
 
         return view('exams.index', [
             'exams' => $paginatedExams,
+            'vesselGroups' => $vesselGroups,
             'vessels' => $vessels,
             'search' => $search,
             'vesselName' => $vesselName,
@@ -68,6 +80,90 @@ class ExamController extends Controller
             'dateTo' => $dateTo,
             'reviewStatus' => $reviewStatus,
         ]);
+    }
+
+    /**
+     * Fold a flat list of PIC rows into an ordered vessel -> batch -> PIC tree.
+     * Legacy rows with no upload_batch_id each become their own single-item bucket so
+     * they still render (and stay individually reviewable) instead of being dropped.
+     *
+     * @param  array<int,array<string,mixed>>  $exams
+     * @return array<int,array<string,mixed>>
+     */
+    private function groupExamsByVesselAndBatch(array $exams): array
+    {
+        $vessels = [];
+
+        foreach ($exams as $exam) {
+            $vesselName = $exam['vessel_name'] ?? 'Unknown Vessel';
+            $rawBatch = $exam['upload_batch_id'] ?? null;
+            $hasBatch = $rawBatch !== null && $rawBatch !== '';
+
+            if (!isset($vessels[$vesselName])) {
+                $vessels[$vesselName] = [
+                    'vessel_name' => $vesselName,
+                    'pic_count' => 0,
+                    'batches' => [],
+                ];
+            }
+            $vessels[$vesselName]['pic_count']++;
+
+            // Legacy (batch-less) rows are keyed per row so they never merge together.
+            $bucketKey = $hasBatch
+                ? 'batch:' . $rawBatch
+                : 'legacy:' . ($exam['id'] ?? uniqid('', true));
+
+            if (!isset($vessels[$vesselName]['batches'][$bucketKey])) {
+                $vessels[$vesselName]['batches'][$bucketKey] = [
+                    'batch_id' => $hasBatch ? $rawBatch : null,
+                    'is_legacy' => !$hasBatch,
+                    'submitted_date' => $exam['submitted_date'] ?? null,
+                    'submitted_by' => $exam['submitted_by'] ?? null,
+                    'items' => [],
+                ];
+            }
+            $vessels[$vesselName]['batches'][$bucketKey]['items'][] = $exam;
+        }
+
+        // Collapse the associative keys to plain lists and derive one review status per
+        // batch so the view can render a single status pill without re-scanning rows.
+        $result = [];
+        foreach ($vessels as $vessel) {
+            $batches = [];
+            foreach ($vessel['batches'] as $batch) {
+                $batch['pic_count'] = count($batch['items']);
+                $batch['status'] = $this->rollupBatchStatus($batch['items']);
+                $batches[] = $batch;
+            }
+            $vessel['batches'] = $batches;
+            $result[] = $vessel;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Reduce a batch's PIC review states to one label:
+     * all approved => approved, all rejected => rejected, any still pending => pending,
+     * otherwise a decided-but-split batch => mixed.
+     *
+     * @param  array<int,array<string,mixed>>  $items
+     */
+    private function rollupBatchStatus(array $items): string
+    {
+        $statuses = [];
+        foreach ($items as $item) {
+            $statuses[$item['review_status'] ?? 'pending'] = true;
+        }
+
+        if (isset($statuses['pending'])) {
+            return 'pending';
+        }
+        if (count($statuses) === 1) {
+            return array_key_first($statuses); // approved or rejected
+        }
+
+        return 'mixed';
     }
 
     public function approve(int $id)
