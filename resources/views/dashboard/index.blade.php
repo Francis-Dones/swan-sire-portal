@@ -17,56 +17,48 @@
     </div>
 @endif
 
-<!-- STAT CARDS - Only Total Inspections and Total Vessels -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-    <!-- Total Exams Card -->
-    <div class="group relative bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-        <div class="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full -ml-12 -mb-12"></div>
-        <div class="p-6 relative z-10">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <i class="ti ti-clipboard-list text-white text-2xl"></i>
+<!-- STAT CARDS -->
+@php
+    $statCards = [
+        ['label' => 'Total Inspections', 'value' => number_format($totalExams), 'icon' => 'ti-clipboard-list', 'grad' => 'from-navy-500 to-navy-700', 'tint' => 'bg-navy-50 dark:bg-navy-500/10 text-navy-600 dark:text-navy-300', 'sub' => 'VIQ records on file'],
+        ['label' => 'Fleet Vessels', 'value' => number_format($totalVessels), 'icon' => 'ti-ship', 'grad' => 'from-cyan-500 to-cyan-700', 'tint' => 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-300', 'sub' => 'Distinct vessels'],
+        ['label' => 'This Month', 'value' => number_format($examsThisMonth ?? 0), 'icon' => 'ti-calendar-stats', 'grad' => 'from-navy-600 to-cyan-600', 'tint' => 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-300', 'sub' => 'Inspections submitted', 'trend' => $monthTrend ?? 0],
+        ['label' => 'Avg. Completion', 'value' => ($avgCompletion ?? 0) . '%', 'icon' => 'ti-rosette-discount-check', 'grad' => 'from-emerald-500 to-teal-600', 'tint' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300', 'sub' => ($uniqueInspectors ?? 0) . ' inspector(s)'],
+    ];
+@endphp
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-8">
+    @foreach($statCards as $c)
+    <div class="group relative bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-800 shadow-sm hover:shadow-xl hover:shadow-navy-500/10 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden">
+        <div class="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br {{ $c['grad'] }} opacity-[0.07] group-hover:opacity-[0.12] transition-opacity"></div>
+        <div class="p-5 relative z-10">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-12 h-12 rounded-xl {{ $c['tint'] }} flex items-center justify-center">
+                    <i class="ti {{ $c['icon'] }} text-xl"></i>
                 </div>
-                <span class="px-3 py-1 rounded-xl text-xs font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">TOTAL</span>
+                @isset($c['trend'])
+                    @php $up = $c['trend'] >= 0; @endphp
+                    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold {{ $up ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' }}">
+                        <i class="ti {{ $up ? 'ti-trending-up' : 'ti-trending-down' }} text-xs"></i>{{ abs($c['trend']) }}%
+                    </span>
+                @endisset
             </div>
-            <p class="text-4xl font-black text-gray-900 dark:text-white">{{ number_format($totalExams) }}</p>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">Total Inspections</p>
-            <div class="mt-4 h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-1000" style="width: 100%"></div>
-            </div>
+            <p class="text-3xl font-extrabold text-slate-900 dark:text-white tnum tracking-tight">{{ $c['value'] }}</p>
+            <p class="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-1.5">{{ $c['label'] }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $c['sub'] }}</p>
         </div>
     </div>
-
-    <!-- Total Vessels Card -->
-    <div class="group relative bg-gradient-to-br from-white to-navy-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105 overflow-hidden">
-        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-navy-500/20 to-transparent rounded-full -mr-16 -mt-16"></div>
-        <div class="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-navy-500/10 to-transparent rounded-full -ml-12 -mb-12"></div>
-        <div class="p-6 relative z-10">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-navy-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-navy-500/30">
-                    <i class="ti ti-ship text-white text-2xl"></i>
-                </div>
-                <span class="px-3 py-1 rounded-xl text-xs font-bold bg-navy-100 dark:bg-navy-900/40 text-navy-700 dark:text-navy-300">FLEET</span>
-            </div>
-            <p class="text-4xl font-black text-gray-900 dark:text-white">{{ number_format($totalVessels) }}</p>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">Total Vessels</p>
-            <div class="mt-4 h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-navy-500 to-indigo-600 rounded-full transition-all duration-1000" style="width: 100%"></div>
-            </div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
 <!-- CHARTS SECTION - Monthly Inspections Trend & Vessel Distribution -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <!-- Bar Chart Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50">
+    <div class="bg-white dark:bg-navy-900 rounded-2xl border border-gray-200 dark:border-navy-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-navy-800 bg-gradient-to-r from-slate-50 to-white dark:from-navy-800/40 dark:to-navy-900">
             <div class="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <div class="flex items-center gap-2">
-                        <div class="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                        <div class="p-1.5 bg-gradient-to-br from-navy-500 to-navy-700 rounded-lg">
                             <i class="ti ti-chart-bar text-white text-sm"></i>
                         </div>
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Monthly Inspections Trend</h3>
@@ -75,7 +67,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div class="w-2 h-2 rounded-full bg-navy-500"></div>
                         Inspections
                     </span>
                 </div>
@@ -87,12 +79,12 @@
     </div>
 
     <!-- Pie Chart Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50">
+    <div class="bg-white dark:bg-navy-900 rounded-2xl border border-gray-200 dark:border-navy-800 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-navy-800 bg-gradient-to-r from-slate-50 to-white dark:from-navy-800/40 dark:to-navy-900">
             <div class="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <div class="flex items-center gap-2">
-                        <div class="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                        <div class="p-1.5 bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-lg">
                             <i class="ti ti-pie-chart text-white text-sm"></i>
                         </div>
                         <h3 class="font-bold text-gray-900 dark:text-white text-lg">Vessel Distribution</h3>
@@ -108,8 +100,8 @@
 </div>
 
 <!-- RECENT EXAMS SECTION -->
-<div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50">
+<div class="bg-white dark:bg-navy-900 rounded-2xl border border-gray-200 dark:border-navy-800 shadow-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-navy-800 bg-gradient-to-r from-slate-50 to-white dark:from-navy-800/40 dark:to-navy-900">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <div class="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
@@ -121,7 +113,7 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('exams.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-sm font-medium rounded-xl transition-all hover:scale-105 shadow-md">
+                <a href="{{ route('exams.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-navy-600 to-cyan-600 hover:from-navy-500 hover:to-cyan-500 text-white text-sm font-medium rounded-xl transition-all hover:scale-105 shadow-md">
                     <span>View All Records</span>
                     <i class="ti ti-arrow-right text-sm"></i>
                 </a>
@@ -132,7 +124,7 @@
     <div class="overflow-x-auto">
         <table class="w-full min-w-[640px] lg:min-w-full">
             <thead>
-                <tr class="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700/80 dark:to-gray-800/80 border-b-2 border-gray-200 dark:border-gray-700">
+                <tr class="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-navy-800/60 dark:to-navy-900 border-b-2 border-gray-200 dark:border-navy-800">
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Exam ID</th>
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Vessel</th>
                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:table-cell">PIC</th>
@@ -141,18 +133,18 @@
                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
+            <tbody class="divide-y divide-gray-100 dark:divide-navy-800/50">
                 @forelse($recentExams ?? [] as $exam)
-                <tr class="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/10 transition-all duration-200 group cursor-pointer" onclick="window.location='{{ route('exams.show', $exam['id'] ?? 0) }}'">
+                <tr class="hover:bg-gradient-to-r hover:bg-navy-50/60 dark:hover:bg-navy-800/30 transition-all duration-200 group cursor-pointer" onclick="window.location='{{ route('exams.show', $exam['id'] ?? 0) }}'">
                     <td class="px-4 py-3">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-navy-50 dark:bg-navy-500/15 text-navy-700 dark:text-navy-200 border border-navy-100 dark:border-navy-800">
                             <i class="ti ti-id-badge text-xs"></i>
                             {{ $exam['exam_id'] ?? '—' }}
                         </span>
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 dark:from-navy-900/40 dark:to-navy-800/40 flex items-center justify-center">
+                            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-navy-100 to-navy-200 dark:from-navy-800 dark:to-navy-900 flex items-center justify-center">
                                 <i class="ti ti-ship text-navy-600 dark:text-navy-400 text-xs"></i>
                             </div>
                             <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">{{ $exam['vessel_name'] ?? '—' }}</span>
@@ -180,7 +172,7 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         <a href="{{ route('exams.show', $exam['id'] ?? 0) }}" 
-                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-md hover:shadow-lg hover:scale-105"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-navy-600 to-cyan-600 hover:from-navy-500 hover:to-cyan-500 text-white text-xs font-bold rounded-lg transition-all shadow-md hover:shadow-lg hover:scale-105"
                            onclick="event.stopPropagation()">
                             <i class="ti ti-eye text-sm"></i>
                             <span>View</span>
@@ -191,7 +183,7 @@
                 <tr>
                     <td colspan="6" class="text-center py-16">
                         <div class="flex flex-col items-center gap-4">
-                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-navy-800 dark:to-navy-900 flex items-center justify-center">
                                 <i class="ti ti-database-off text-3xl text-gray-400 dark:text-gray-500"></i>
                             </div>
                             <div>
@@ -227,8 +219,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Inspections',
                     data: monthlyData.map(d => d.count),
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(30, 78, 140, 0.85)',
+                    borderColor: '#1E4E8C',
                     borderWidth: 2,
                     borderRadius: 10,
                     barPercentage: 0.7,
@@ -248,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         backgroundColor: isDark() ? '#1e293b' : '#ffffff',
                         titleColor: isDark() ? '#f1f5f9' : '#1e293b',
                         bodyColor: isDark() ? '#cbd5e1' : '#475569',
-                        borderColor: '#3b82f6',
+                        borderColor: '#1E4E8C',
                         borderWidth: 1,
                         callbacks: {
                             label: function(context) {
@@ -284,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: Object.keys(typeData),
                 datasets: [{
                     data: Object.values(typeData),
-                    backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'],
+                    backgroundColor: ['#1E4E8C', '#06B6D4', '#24589C', '#22D3EE', '#0891B2', '#4E7FBC', '#8FB2DE'],
                     borderWidth: 0,
                     hoverOffset: 15,
                 }]

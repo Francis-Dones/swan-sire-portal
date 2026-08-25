@@ -30,6 +30,11 @@ class DashboardController extends Controller
                 'inspectionTypes' => [],
                 'vessels' => [],
                 'yesNoStatistics' => [],
+                'examsThisMonth' => 0,
+                'examsLastMonth' => 0,
+                'monthTrend' => 0,
+                'uniqueInspectors' => 0,
+                'avgCompletion' => 0,
                 'apiError' => 'Unable to load inspection data. Please try again later.'
             ]);
         }
@@ -50,10 +55,33 @@ class DashboardController extends Controller
         // YES/NO Statistics for each exam
         $yesNoStatistics = $this->buildYesNoStatistics($exams);
 
+        // ── Headline KPIs (derived from already-loaded exams; no extra queries) ──
+        $thisMonthKey = now()->format('Y-m');
+        $lastMonthKey = now()->subMonth()->format('Y-m');
+        $countInMonth = function (string $key) use ($exams): int {
+            return collect($exams)->filter(function ($exam) use ($key) {
+                $date = $exam['submitted_date'] ?? '';
+                if ($date instanceof \DateTime) {
+                    $date = $date->format('Y-m-d');
+                }
+                return is_string($date) && str_starts_with($date, $key);
+            })->count();
+        };
+        $examsThisMonth = $countInMonth($thisMonthKey);
+        $examsLastMonth = $countInMonth($lastMonthKey);
+        $monthTrend = $examsLastMonth > 0
+            ? (int) round((($examsThisMonth - $examsLastMonth) / $examsLastMonth) * 100)
+            : ($examsThisMonth > 0 ? 100 : 0);
+
+        $uniqueInspectors = collect($exams)->pluck('submitted_by')->filter()->unique()->count();
+        $avgCompletion = collect($yesNoStatistics)->avg('completion_rate');
+        $avgCompletion = $avgCompletion ? round($avgCompletion) : 0;
+
         return view('dashboard.index', compact(
             'totalExams', 'totalVessels', 'recentExams',
             'monthlyData', 'inspectionTypes', 'vessels',
-            'yesNoStatistics'
+            'yesNoStatistics', 'examsThisMonth', 'examsLastMonth',
+            'monthTrend', 'uniqueInspectors', 'avgCompletion'
         ));
     }
 
