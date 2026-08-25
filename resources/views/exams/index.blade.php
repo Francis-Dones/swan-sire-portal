@@ -14,6 +14,16 @@
         this.rejectLabel = label;
         this.remarks = '';
         this.rejectOpen = true;
+    },
+    approveOpen: false,
+    approveUrl: '',
+    approveLabel: '',
+    approveMsg: '',
+    openApprove(url, label, msg) {
+        this.approveUrl = url;
+        this.approveLabel = label;
+        this.approveMsg = msg;
+        this.approveOpen = true;
     }
 }">
     <!-- FILTERS SECTION -->
@@ -220,37 +230,48 @@
                             </div>
                         </div>
 
-                        <!-- Batch-level actions -->
+                        <!-- Batch-level actions — shown ONLY while the batch still has pending PIC -->
+                        @php
+                            $batchPending = collect($batch['items'])->filter(fn($i) => (($i['review_status'] ?? 'pending') === 'pending'))->count();
+                        @endphp
                         <div class="flex items-center gap-2 flex-shrink-0">
-                            @if($batch['is_legacy'])
-                                @php $one = $batch['items'][0]; @endphp
-                                <form method="POST" action="{{ route('exams.approve', $one['id'] ?? 0) }}" class="flex-1 md:flex-none" onsubmit="return confirm('Approve this submission?')">
-                                    @csrf
-                                    <button type="submit" class="w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all">
+                            @if($batchPending > 0)
+                                @if($batch['is_legacy'])
+                                    @php $one = $batch['items'][0]; @endphp
+                                    <button type="button"
+                                            data-approve-url="{{ route('exams.approve', $one['id'] ?? 0) }}"
+                                            data-approve-label="{{ $vessel['vessel_name'] }} · {{ $one['person_in_charge'] ?? ('Exam ' . ($one['exam_id'] ?? $one['id'] ?? '')) }}"
+                                            @click="openApprove($el.dataset.approveUrl, $el.dataset.approveLabel, 'Approve this questionnaire submission?')"
+                                            class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all">
                                         <i class="ti ti-check"></i> Approve
                                     </button>
-                                </form>
-                                <button type="button"
-                                        data-reject-url="{{ route('exams.reject', $one['id'] ?? 0) }}"
-                                        data-reject-label="{{ $vessel['vessel_name'] }} · {{ $one['person_in_charge'] ?? ('Exam ' . ($one['exam_id'] ?? $one['id'] ?? '')) }}"
-                                        @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
-                                        class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all">
-                                    <i class="ti ti-x"></i> Reject
-                                </button>
-                            @else
-                                <form method="POST" action="{{ route('exams.batch.approve', $batch['batch_id']) }}" class="flex-1 md:flex-none" onsubmit="return confirm('Approve all {{ $batch['pic_count'] }} PIC in this upload?')">
-                                    @csrf
-                                    <button type="submit" class="w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all">
+                                    <button type="button"
+                                            data-reject-url="{{ route('exams.reject', $one['id'] ?? 0) }}"
+                                            data-reject-label="{{ $vessel['vessel_name'] }} · {{ $one['person_in_charge'] ?? ('Exam ' . ($one['exam_id'] ?? $one['id'] ?? '')) }}"
+                                            @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
+                                            class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all">
+                                        <i class="ti ti-x"></i> Reject
+                                    </button>
+                                @else
+                                    <button type="button"
+                                            data-approve-url="{{ route('exams.batch.approve', $batch['batch_id']) }}"
+                                            data-approve-label="{{ $vessel['vessel_name'] }} upload ({{ $batchPending }} pending PIC)"
+                                            @click="openApprove($el.dataset.approveUrl, $el.dataset.approveLabel, 'Approve all pending PIC in this upload?')"
+                                            class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-all">
                                         <i class="ti ti-check"></i> <span class="whitespace-nowrap">Approve Upload</span>
                                     </button>
-                                </form>
-                                <button type="button"
-                                        data-reject-url="{{ route('exams.batch.reject', $batch['batch_id']) }}"
-                                        data-reject-label="{{ $vessel['vessel_name'] }} upload ({{ $batch['pic_count'] }} PIC)"
-                                        @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
-                                        class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all">
-                                    <i class="ti ti-x"></i> <span class="whitespace-nowrap">Reject Upload</span>
-                                </button>
+                                    <button type="button"
+                                            data-reject-url="{{ route('exams.batch.reject', $batch['batch_id']) }}"
+                                            data-reject-label="{{ $vessel['vessel_name'] }} upload ({{ $batchPending }} pending PIC)"
+                                            @click="openReject($el.dataset.rejectUrl, $el.dataset.rejectLabel)"
+                                            class="flex-1 md:flex-none min-h-[44px] inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition-all">
+                                        <i class="ti ti-x"></i> <span class="whitespace-nowrap">Reject Upload</span>
+                                    </button>
+                                @endif
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-navy-800">
+                                    <i class="ti ti-lock-check text-xs"></i> Review complete
+                                </span>
                             @endif
                         </div>
                     </div>
@@ -358,11 +379,52 @@
     </div>
     @endif
 
+    <!-- APPROVE MODAL -->
+    <div x-show="approveOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="approveOpen=false">
+        <div class="absolute inset-0 bg-black/60" x-show="approveOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click="approveOpen=false"></div>
+        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl border border-slate-200 dark:border-navy-800"
+             x-show="approveOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                    <i class="ti ti-circle-check text-emerald-600 dark:text-emerald-400 text-xl"></i>
+                </span>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Confirm approval</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-1" x-text="approveMsg"></p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-4"><span x-text="approveLabel"></span></p>
+            <form method="POST" :action="approveUrl">
+                @csrf
+                <div class="flex gap-2">
+                    <button type="button" @click="approveOpen=false"
+                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-navy-800 dark:hover:bg-navy-800 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all">
+                        <i class="ti ti-check"></i> Approve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- REJECT MODAL -->
     <div x-show="rejectOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          @keydown.escape.window="rejectOpen=false">
-        <div class="absolute inset-0 bg-black/60" @click="rejectOpen=false"></div>
-        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl">
+        <div class="absolute inset-0 bg-black/60" x-show="rejectOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click="rejectOpen=false"></div>
+        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl border border-slate-200 dark:border-navy-800"
+             x-show="rejectOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                 <i class="ti ti-x-circle text-rose-500"></i> Reject <span x-text="rejectLabel"></span>
             </h3>

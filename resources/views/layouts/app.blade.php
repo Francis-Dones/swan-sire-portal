@@ -161,7 +161,7 @@
 
         /* ── Mobile overlay ── */
         .overlay { position: fixed; inset: 0; background: rgba(7,22,39,.55); backdrop-filter: blur(3px); z-index: 40; }
-        @media (min-width: 768px) { .overlay { display: none !important; } }
+        @media (min-width: 1024px) { .overlay { display: none !important; } }
 
         @keyframes fadeSlideDown { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
         .anim-fade { animation: fadeSlideDown .25s ease; }
@@ -188,11 +188,14 @@
     </div>
 
     <!-- ░░░░ SIDEBAR ░░░░ -->
-    <aside class="fixed md:sticky top-0 left-0 h-screen z-50 md:z-auto
+    <!-- On lg+ the rail is ALWAYS visible (lg:translate-x-0 overrides the mobile toggle);
+         below lg it is an off-canvas drawer controlled by sidebarOpen. -->
+    <aside class="fixed lg:sticky top-0 left-0 h-screen z-50 lg:z-auto
                   w-64 flex-shrink-0 flex flex-col
                   bg-white dark:bg-navy-900
                   border-r border-slate-200 dark:border-navy-800
                   transition-transform duration-300 ease-out
+                  lg:translate-x-0
                   sidebar-scroll overflow-y-auto"
            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
 
@@ -208,7 +211,7 @@
                 </div>
             </div>
             <button @click="sidebarOpen = false"
-                    class="md:hidden flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors ml-1">
+                    class="lg:hidden flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors ml-1">
                 <i class="ti ti-x" style="font-size:16px;"></i>
             </button>
         </div>
@@ -256,34 +259,10 @@
             </a>
         </nav>
 
-        <!-- User card + Logout -->
-        <div class="flex-shrink-0 border-t border-slate-200 dark:border-navy-800 p-3 space-y-1">
-            <div class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950/60 border border-slate-100 dark:border-navy-800">
-                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-navy-500 to-cyan-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
-                    {{ strtoupper(substr(session('user_name', auth()->user()->username ?? 'U'), 0, 1)) }}
-                </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate leading-tight">
-                        {{ session('user_name', auth()->user()->username ?? 'User') }}
-                    </p>
-                    <p class="text-slate-400 truncate leading-tight" style="font-size:11px;">
-                        {{ session('user_email', auth()->user()->email ?? 'Logged in') }}
-                    </p>
-                </div>
-                <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" title="Online"></span>
-            </div>
-
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit"
-                        class="nav-link w-full text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
-                        style="color:#f43f5e;">
-                    <span class="nav-icon" style="background:rgba(244,63,94,.10);color:#f43f5e;">
-                        <i class="ti ti-logout" style="color:#f43f5e;"></i>
-                    </span>
-                    <span>Logout</span>
-                </button>
-            </form>
+        <!-- Sidebar footer (user + logout now live in the header menu) -->
+        <div class="flex-shrink-0 border-t border-slate-200 dark:border-navy-800 px-4 py-3.5 flex items-center justify-between">
+            <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">SWAN Maritime</span>
+            <span class="mono text-[10px] text-slate-400 dark:text-slate-500">v2.0</span>
         </div>
     </aside>
 
@@ -294,7 +273,7 @@
         <header class="flex-shrink-0 bg-white/90 dark:bg-navy-900/90 backdrop-blur-md border-b border-slate-200 dark:border-navy-800 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
             <div class="flex items-center gap-3 min-w-0">
                 <button @click="sidebarOpen = !sidebarOpen"
-                        class="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition-all flex-shrink-0">
+                        class="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition-all flex-shrink-0">
                     <i class="ti ti-menu-2 text-xl"></i>
                 </button>
                 <div class="min-w-0">
@@ -307,7 +286,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 @hasSection('topbar-actions')
                     @yield('topbar-actions')
                 @endif
@@ -323,6 +302,50 @@
                            style="font-size:11px;"></i>
                     </span>
                 </button>
+
+                <div class="w-px h-6 bg-slate-200 dark:bg-navy-800 hidden sm:block"></div>
+
+                <!-- User menu -->
+                @php
+                    $displayName  = session('user_name', auth()->user()->username ?? 'User');
+                    $displayEmail = session('user_email', auth()->user()->email ?? 'Logged in');
+                    $initial = strtoupper(substr($displayName, 0, 1));
+                @endphp
+                <div class="relative" x-data="{ userMenu: false }" @keydown.escape.window="userMenu=false">
+                    <button @click="userMenu = !userMenu"
+                            class="flex items-center gap-2 pl-1.5 pr-1 sm:pr-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors"
+                            :class="userMenu ? 'bg-slate-100 dark:bg-navy-800' : ''">
+                        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-navy-500 to-cyan-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{{ $initial }}</span>
+                        <span class="hidden sm:block text-sm font-semibold text-slate-700 dark:text-slate-200 max-w-[9rem] truncate leading-tight">{{ $displayName }}</span>
+                        <i class="ti ti-chevron-down text-slate-400 text-sm transition-transform hidden sm:block" :class="userMenu ? 'rotate-180' : ''"></i>
+                    </button>
+
+                    <div x-show="userMenu" x-cloak @click.outside="userMenu=false"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                         x-transition:leave-end="opacity-0 -translate-y-1 scale-95"
+                         class="absolute right-0 mt-2 w-64 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 shadow-xl shadow-navy-900/10 overflow-hidden z-50">
+                        <div class="flex items-center gap-3 p-3.5 border-b border-slate-100 dark:border-navy-800">
+                            <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-500 to-cyan-600 flex items-center justify-center text-white font-bold flex-shrink-0">{{ $initial }}</span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate leading-tight">{{ $displayName }}</p>
+                                <p class="text-xs text-slate-400 dark:text-slate-500 truncate leading-tight mt-0.5">{{ $displayEmail }}</p>
+                            </div>
+                        </div>
+                        <div class="p-1.5">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                                    <i class="ti ti-logout text-lg"></i> Log out
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -392,14 +415,16 @@
 function appLayout() {
     return {
         darkMode: localStorage.getItem('darkMode') === 'true',
-        sidebarOpen: window.innerWidth >= 768,
-        isDesktop: window.innerWidth >= 768,
+        // Desktop rail is CSS-forced visible at lg (>=1024); this flag only governs
+        // the mobile/tablet off-canvas drawer + its backdrop.
+        sidebarOpen: window.innerWidth >= 1024,
+        isDesktop: window.innerWidth >= 1024,
         init() {
             this.darkMode = localStorage.getItem('darkMode') === 'true';
-            this.isDesktop = window.innerWidth >= 768;
+            this.isDesktop = window.innerWidth >= 1024;
             this.sidebarOpen = this.isDesktop;
             window.addEventListener('resize', () => {
-                this.isDesktop = window.innerWidth >= 768;
+                this.isDesktop = window.innerWidth >= 1024;
                 if (this.isDesktop) this.sidebarOpen = true;
             });
         },

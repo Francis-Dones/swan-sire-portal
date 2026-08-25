@@ -14,11 +14,22 @@
         this.rejectLabel = label;
         this.remarks = '';
         this.rejectOpen = true;
+    },
+    approveOpen: false,
+    approveUrl: '',
+    approveLabel: '',
+    approveMsg: '',
+    openApprove(url, label, msg) {
+        this.approveUrl = url;
+        this.approveLabel = label;
+        this.approveMsg = msg;
+        this.approveOpen = true;
     }
 }">
     <div class="flex items-center gap-3 mb-2">
-        <a href="{{ route('exams.index') }}" class="btn-outline text-xs py-1.5 px-3">
-            <i class="ti ti-arrow-left"></i> Back
+        <a href="{{ route('exams.index') }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium text-navy-700 dark:text-navy-200 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 hover:bg-slate-50 dark:hover:bg-navy-800 hover:border-navy-300 dark:hover:border-navy-700 transition-all shadow-sm">
+            <i class="ti ti-arrow-left text-base"></i> Back to VIQ
         </a>
     </div>
 
@@ -54,13 +65,16 @@
                 @endif
             </div>
 
+            {{-- Review actions are shown ONLY while this exam is still pending; once approved/rejected the decision is final. --}}
+            @if($reviewStatus === 'pending')
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('exams.approve', $exam['id']) }}" onsubmit="return confirm('Approve this exam?')">
-                    @csrf
-                    <button type="submit" class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all">
-                        <i class="ti ti-check"></i> Approve
-                    </button>
-                </form>
+                <button type="button"
+                        data-approve-url="{{ route('exams.approve', $exam['id']) }}"
+                        data-approve-label="Exam {{ $exam['exam_id'] ?? $exam['id'] }}"
+                        @click="openApprove($el.dataset.approveUrl, $el.dataset.approveLabel, 'Approve this questionnaire?')"
+                        class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all">
+                    <i class="ti ti-check"></i> Approve
+                </button>
                 <button type="button"
                         data-reject-url="{{ route('exams.reject', $exam['id']) }}"
                         data-reject-label="Exam {{ $exam['exam_id'] ?? $exam['id'] }}"
@@ -69,12 +83,13 @@
                     <i class="ti ti-x"></i> Reject
                 </button>
                 @if($batchId)
-                <form method="POST" action="{{ route('exams.batch.approve', $batchId) }}" onsubmit="return confirm('Approve every exam in this upload?')">
-                    @csrf
-                    <button type="submit" class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-sm font-semibold rounded-xl transition-all">
-                        <i class="ti ti-stack-2"></i> Approve Entire Upload
-                    </button>
-                </form>
+                <button type="button"
+                        data-approve-url="{{ route('exams.batch.approve', $batchId) }}"
+                        data-approve-label="the entire upload batch"
+                        @click="openApprove($el.dataset.approveUrl, $el.dataset.approveLabel, 'Approve every pending exam in this upload?')"
+                        class="min-h-[44px] inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-sm font-semibold rounded-xl transition-all">
+                    <i class="ti ti-stack-2"></i> Approve Entire Upload
+                </button>
                 <button type="button"
                         data-reject-url="{{ route('exams.batch.reject', $batchId) }}"
                         data-reject-label="the entire upload batch"
@@ -84,6 +99,11 @@
                 </button>
                 @endif
             </div>
+            @else
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-navy-800 self-start">
+                <i class="ti ti-lock-check"></i> Review finalised — no further action
+            </span>
+            @endif
         </div>
 
         @if($exam['review_remarks'] ?? null)
@@ -94,11 +114,52 @@
         @endif
     </div>
 
+    <!-- APPROVE MODAL -->
+    <div x-show="approveOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         @keydown.escape.window="approveOpen=false">
+        <div class="absolute inset-0 bg-black/60" x-show="approveOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click="approveOpen=false"></div>
+        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl border border-slate-200 dark:border-navy-800"
+             x-show="approveOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                    <i class="ti ti-circle-check text-emerald-600 dark:text-emerald-400 text-xl"></i>
+                </span>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Confirm approval</h3>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-1" x-text="approveMsg"></p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-4"><span x-text="approveLabel"></span></p>
+            <form method="POST" :action="approveUrl">
+                @csrf
+                <div class="flex gap-2">
+                    <button type="button" @click="approveOpen=false"
+                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-navy-800 dark:hover:bg-navy-800 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition-all">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all">
+                        <i class="ti ti-check"></i> Approve
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- REJECT MODAL -->
     <div x-show="rejectOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          @keydown.escape.window="rejectOpen=false">
-        <div class="absolute inset-0 bg-black/60" @click="rejectOpen=false"></div>
-        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl">
+        <div class="absolute inset-0 bg-black/60" x-show="rejectOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             @click="rejectOpen=false"></div>
+        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl border border-slate-200 dark:border-navy-800"
+             x-show="rejectOpen"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                 <i class="ti ti-x-circle text-rose-500"></i> Reject <span x-text="rejectLabel"></span>
             </h3>
