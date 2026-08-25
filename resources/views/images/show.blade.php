@@ -4,12 +4,12 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <a href="{{ route('images.index') }}" class="text-blue-500 hover:underline mb-4 inline-flex items-center gap-2">
+    <a href="{{ route('images.index') }}" class="text-navy-500 hover:underline mb-4 inline-flex items-center gap-2">
         <i class="ti ti-arrow-left"></i> Back to Images
     </a>
     
     @if(isset($image))
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="bg-white dark:bg-navy-900 rounded-lg shadow p-6">
         <div class="grid md:grid-cols-2 gap-6">
             <!-- Image Display - Using AJAX to fetch image data -->
             <div>
@@ -62,8 +62,8 @@
                             </div>
                         </template>
                         <template x-if="!loaded && !error">
-                            <div class="bg-gray-100 dark:bg-gray-700 h-96 flex flex-col items-center justify-center rounded-lg">
-                                <svg class="animate-spin h-16 w-16 text-blue-500" viewBox="0 0 24 24">
+                            <div class="bg-gray-100 dark:bg-navy-800 h-96 flex flex-col items-center justify-center rounded-lg">
+                                <svg class="animate-spin h-16 w-16 text-navy-500" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                                 </svg>
@@ -71,7 +71,7 @@
                             </div>
                         </template>
                         <template x-if="error">
-                            <div class="bg-gray-100 dark:bg-gray-700 h-96 flex flex-col items-center justify-center rounded-lg">
+                            <div class="bg-gray-100 dark:bg-navy-800 h-96 flex flex-col items-center justify-center rounded-lg">
                                 <i class="ti ti-photo-off text-6xl text-gray-400"></i>
                                 <p class="text-gray-500 dark:text-gray-400 mt-2">No image data available</p>
                                 <p class="text-xs text-gray-400 mt-1">Image ID: {{ $imageId }}</p>
@@ -92,7 +92,7 @@
                     </div>
                 </div>
                 @else
-                <div class="bg-gray-100 dark:bg-gray-700 h-96 flex flex-col items-center justify-center rounded-lg">
+                <div class="bg-gray-100 dark:bg-navy-800 h-96 flex flex-col items-center justify-center rounded-lg">
                     <i class="ti ti-photo-off text-6xl text-gray-400"></i>
                     <p class="text-gray-500 dark:text-gray-400 mt-2">No image ID available</p>
                 </div>
@@ -102,7 +102,7 @@
             <!-- Image Details -->
             <div>
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                    <i class="ti ti-photo text-blue-500"></i>
+                    <i class="ti ti-photo text-navy-500"></i>
                     {{ $image['image_name'] ?? $image['name'] ?? 'Image Details' }}
                 </h2>
                 
@@ -186,7 +186,7 @@
                             <dt class="font-semibold text-sm text-gray-500">Inspection Type</dt>
                             <dd>
                                 @if(!empty($image['inspection_type']) || !empty($image['inspectionType']))
-                                <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-sm">
+                                <span class="bg-navy-100 text-navy-700 px-2 py-0.5 rounded text-sm">
                                     {{ $image['inspection_type'] ?? $image['inspectionType'] }}
                                 </span>
                                 @else
@@ -271,7 +271,7 @@
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
         <i class="ti ti-alert-circle text-4xl text-yellow-500"></i>
         <p class="mt-2 text-yellow-700">Image not found. The image may have been deleted or the ID is invalid.</p>
-        <a href="{{ route('images.index') }}" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        <a href="{{ route('images.index') }}" class="mt-4 inline-block bg-navy-500 text-white px-4 py-2 rounded hover:bg-navy-600">
             Back to Images
         </a>
     </div>
