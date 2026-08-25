@@ -33,7 +33,7 @@
     @endphp
 
     <!-- REVIEW BANNER -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 sm:p-5">
+    <div class="bg-white dark:bg-navy-900 rounded-xl border border-gray-200 dark:border-navy-800 shadow-sm p-4 sm:p-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-3">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold {{ $reviewPillClass }}">
@@ -48,7 +48,7 @@
                 </span>
                 @endif
                 @if($batchId)
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-800/50 text-indigo-700 dark:text-indigo-300">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
                     <i class="ti ti-stack-2 text-xs"></i> Part of an upload batch
                 </span>
                 @endif
@@ -87,7 +87,7 @@
         </div>
 
         @if($exam['review_remarks'] ?? null)
-        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-navy-800 flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
             <i class="ti ti-message-circle text-gray-400 mt-0.5"></i>
             <span>{{ $exam['review_remarks'] }}</span>
         </div>
@@ -98,7 +98,7 @@
     <div x-show="rejectOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          @keydown.escape.window="rejectOpen=false">
         <div class="absolute inset-0 bg-black/60" @click="rejectOpen=false"></div>
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md p-5 shadow-xl">
+        <div class="relative bg-white dark:bg-navy-900 rounded-2xl w-full max-w-md p-5 shadow-xl">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                 <i class="ti ti-x-circle text-rose-500"></i> Reject <span x-text="rejectLabel"></span>
             </h3>
@@ -106,11 +106,11 @@
             <form method="POST" :action="rejectUrl">
                 @csrf
                 <textarea name="remarks" x-model="remarks" required rows="4"
-                          class="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all dark:text-white"
+                          class="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-navy-950/50 border border-gray-200 dark:border-navy-800 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all dark:text-white"
                           placeholder="Reason for rejection..."></textarea>
                 <div class="flex gap-2 mt-4">
                     <button type="button" @click="rejectOpen=false"
-                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition-all">
+                            class="flex-1 min-h-[44px] px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-navy-800 dark:hover:bg-navy-800 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition-all">
                         Cancel
                     </button>
                     <button type="submit" :disabled="!remarks.trim()"
@@ -122,11 +122,11 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+    <div class="bg-white dark:bg-navy-900 rounded-xl border border-gray-200 dark:border-navy-800 shadow-sm p-6">
         <div class="flex items-start justify-between mb-6">
             <div>
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $exam['vessel_name'] ?? '—' }}</h2>
-                <span class="mono text-xs text-blue-600 dark:text-blue-400">{{ $exam['exam_id'] ?? '—' }}</span>
+                <span class="mono text-xs text-cyan-600 dark:text-cyan-400">{{ $exam['exam_id'] ?? '—' }}</span>
             </div>
             <span class="badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-sm px-3 py-1">
                 Completed
@@ -135,7 +135,7 @@
 
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             @foreach(['person_in_charge' => 'Person In Charge', 'submitted_by' => 'Submitted By', 'email' => 'Email', 'submitted_date' => 'Submitted Date', 'created_at' => 'Created At'] as $key => $label)
-            <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3">
+            <div class="bg-gray-50 dark:bg-navy-800/40 rounded-lg p-3">
                 <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">{{ $label }}</p>
                 <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {{ isset($exam[$key]) ? (in_array($key, ['submitted_date', 'created_at']) ? date('M d, Y H:i', strtotime($exam[$key])) : $exam[$key]) : '—' }}
@@ -159,9 +159,9 @@
                 <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">{{ $exam['statistics']['not_answered_count'] }}</p>
                 <p class="text-xs text-amber-700 dark:text-amber-300">Not Answered</p>
             </div>
-            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
-                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $exam['statistics']['completion_rate'] }}%</p>
-                <p class="text-xs text-blue-700 dark:text-blue-300">Completion Rate</p>
+            <div class="bg-navy-50 dark:bg-navy-500/10 rounded-lg p-3 text-center border border-navy-200 dark:border-navy-800">
+                <p class="text-2xl font-bold text-navy-600 dark:text-navy-300">{{ $exam['statistics']['completion_rate'] }}%</p>
+                <p class="text-xs text-navy-700 dark:text-navy-300">Completion Rate</p>
             </div>
         </div>
         @endif
@@ -170,16 +170,16 @@
         @if(!empty($exam['processed_answers']))
         <div>
             <h3 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <i class="ti ti-list-check text-blue-500"></i> Inspection Answers
-                <span class="badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                <i class="ti ti-list-check text-navy-500 dark:text-cyan-400"></i> Inspection Answers
+                <span class="badge bg-navy-100 text-navy-700 dark:bg-navy-500/15 dark:text-navy-200">
                     {{ count($exam['processed_answers']) }} items
                 </span>
             </h3>
             
-            <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-gray-50 dark:bg-navy-950/50 rounded-lg border border-gray-200 dark:border-navy-800 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
-                        <thead class="bg-gray-100 dark:bg-gray-700/60 text-gray-500 dark:text-gray-400">
+                        <thead class="bg-gray-100 dark:bg-navy-800/60 text-gray-500 dark:text-gray-400">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase w-24">Item</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase">Question</th>
@@ -188,11 +188,24 @@
                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase w-72">Remarks</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody class="divide-y divide-gray-200 dark:divide-navy-800">
                             @foreach($exam['processed_answers'] as $answer)
-                            <tr class="hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
+                            @php
+                                $ansUpper = strtoupper(trim((string)($answer['answer'] ?? '')));
+                                $rowAccent = match ($ansUpper) {
+                                    'YES' => 'border-l-4 border-emerald-400 dark:border-emerald-500/60',
+                                    'NO'  => 'border-l-4 border-rose-400 dark:border-rose-500/60',
+                                    default => 'border-l-4 border-amber-400 dark:border-amber-500/60',
+                                };
+                                $rowHover = match ($ansUpper) {
+                                    'YES' => 'hover:bg-emerald-50/60 dark:hover:bg-emerald-900/10',
+                                    'NO'  => 'hover:bg-rose-50/60 dark:hover:bg-rose-900/10',
+                                    default => 'hover:bg-amber-50/60 dark:hover:bg-amber-900/10',
+                                };
+                            @endphp
+                            <tr class="{{ $rowAccent }} {{ $rowHover }} transition-colors">
                                 <td class="px-4 py-3">
-                                    <span class="mono text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
+                                    <span class="mono text-xs font-mono text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-navy-800 px-2 py-1 rounded">
                                         {{ $answer['key'] }}
                                     </span>
                                 </td>
@@ -200,7 +213,7 @@
                                     {{ $answer['question_text'] }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                                    <span class="text-xs bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 px-2 py-1 rounded">
                                         {{ $answer['category'] }}
                                     </span>
                                 </td>
