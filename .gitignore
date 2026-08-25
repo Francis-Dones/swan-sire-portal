@@ -1,4 +1,10 @@
 .env
 /vendor
-storage/*.log
 /node_modules
+*.log
+storage/logs/*
+!storage/logs/.gitignore
+/bootstrap/cache/*.php
+/storage/framework/views/*.php
+/storage/framework/cache/data/*
+/storage/framework/sessions/*

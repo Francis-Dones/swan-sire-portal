@@ -169,7 +169,7 @@
                      @click="modalOpen=true;
                          modalImgSrc='{{ route('images.raw', $imgId) }}';
                          modalName='{{ addslashes($imgName) }}';
-                         modalMime='{{ $img['image_mime_type'] ?? 'image/jpeg' }}';
+                         modalMime='{{ addslashes($img['image_mime_type'] ?? 'image/jpeg') }}';
                          modalVessel='{{ addslashes($vesselName) }}';
                          modalInspectionId='{{ addslashes($inspectionId) }}';
                          modalInspectionDate='{{ addslashes($inspectionDateFull) }}';
@@ -258,7 +258,7 @@
                                              @click="modalOpen=true;
                                                  modalImgSrc='{{ route('images.raw', $imgId) }}';
                                                  modalName='{{ addslashes($imgName) }}';
-                                                 modalMime='{{ $img['image_mime_type'] ?? 'image/jpeg' }}';
+                                                 modalMime='{{ addslashes($img['image_mime_type'] ?? 'image/jpeg') }}';
                                                  modalVessel='{{ addslashes($vesselName) }}';
                                                  modalInspectionId='{{ addslashes($inspectionId) }}';
                                                  modalInspectionDate='{{ addslashes($inspectionDateFull) }}';
