@@ -248,6 +248,29 @@
                 <span>Vessels</span>
             </a>
 
+            <div x-data="{ open: {{ request()->routeIs('drill*') ? 'true' : 'false' }} }">
+                <button type="button" @click="open = !open"
+                        class="nav-link w-full {{ request()->routeIs('drill*') ? 'active' : '' }}">
+                    <span class="nav-icon"><i class="ti ti-clipboard-check"></i></span>
+                    <span>SIRE Drill</span>
+                    <i class="ti ti-chevron-down text-slate-400 text-sm ml-auto transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="open" x-cloak class="ml-4 pl-3 border-l border-slate-200 dark:border-navy-800 mt-1 space-y-0.5">
+                    <a href="{{ route('drill.take') }}"
+                       class="nav-link {{ request()->routeIs('drill.take') ? 'active' : '' }}"
+                       @click="if(!isDesktop) sidebarOpen = false">
+                        <span class="nav-icon"><i class="ti ti-pencil-question"></i></span>
+                        <span>Take Drill</span>
+                    </a>
+                    <a href="{{ route('drill.results') }}"
+                       class="nav-link {{ request()->routeIs('drill.results') || request()->routeIs('drill.show') ? 'active' : '' }}"
+                       @click="if(!isDesktop) sidebarOpen = false">
+                        <span class="nav-icon"><i class="ti ti-checklist"></i></span>
+                        <span>Results</span>
+                    </a>
+                </div>
+            </div>
+
             <div class="nav-hr"></div>
             <p class="nav-section">Management</p>
 

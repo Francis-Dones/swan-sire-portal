@@ -376,4 +376,32 @@ class ApiService
     {
         return $this->delete("exams/{$id}");
     }
+
+    // ============ SIRE READINESS DRILL ============
+
+    /**
+     * Submit one completed drill session (from the portal web quiz or crew mobile).
+     * `question_id` on each answer is the bank entry's `no`.
+     */
+    public function submitDrill(array $data): array
+    {
+        return $this->post('drill-submissions', $data);
+    }
+
+    /**
+     * Paginated shore list of submitted drill results. The list payload omits the
+     * per-question `answers` array — those come from getDrillSubmission($id).
+     */
+    public function getDrillSubmissions(array $params = []): array
+    {
+        return $this->get('drill-submissions', $params);
+    }
+
+    /**
+     * One drill submission, including its full per-question `answers` array.
+     */
+    public function getDrillSubmission(int $id): array
+    {
+        return $this->get("drill-submissions/{$id}");
+    }
 }

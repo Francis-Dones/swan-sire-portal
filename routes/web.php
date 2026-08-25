@@ -7,6 +7,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\InspectionImageController;
 use App\Http\Controllers\VesselController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DrillController;
 
 // Auth Routes
 Route::get('/', fn() => redirect()->route('login'));
@@ -58,6 +59,14 @@ Route::middleware('check.api.auth')->group(function () {
         Route::get('/{vesselName}', [VesselController::class, 'show'])->name('show');
         Route::get('/export/excel', [VesselController::class, 'exportExcel'])->name('export.excel');
         Route::get('/export/pdf', [VesselController::class, 'exportPdf'])->name('export.pdf');
+    });
+
+    // SIRE Readiness Drill — take the web quiz + shore results view.
+    Route::prefix('drill')->name('drill.')->group(function () {
+        Route::get('/', [DrillController::class, 'take'])->name('take');
+        Route::post('/submit', [DrillController::class, 'submit'])->name('submit');
+        Route::get('/results', [DrillController::class, 'results'])->name('results');
+        Route::get('/results/{id}', [DrillController::class, 'show'])->name('show');
     });
 
     // Users — shore (admin) accounts only.
