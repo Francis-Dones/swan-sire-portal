@@ -23,11 +23,19 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search');
+        $viewerRole = session('user_role') ?? session('api_user.role');
 
         $users = User::query()
-            ->when($search, fn($q) => $q->where('username', 'ilike', "%{$search}%")
-                ->orWhere('email', 'ilike', "%{$search}%")
-                ->orWhere('vessel_name', 'ilike', "%{$search}%"))
+            // Hide developer account(s) from non-developer (shore admin) viewers, so
+            // only a developer can see/manage the developer account. Developer sees all.
+            ->when($viewerRole !== 'developer', fn($q) => $q->where(
+                fn($sub) => $sub->whereNull('role')->orWhere('role', '!=', 'developer')
+            ))
+            ->when($search, fn($q) => $q->where(
+                fn($sub) => $sub->where('username', 'ilike', "%{$search}%")
+                    ->orWhere('email', 'ilike', "%{$search}%")
+                    ->orWhere('vessel_name', 'ilike', "%{$search}%")
+            ))
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
