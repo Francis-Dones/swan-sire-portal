@@ -9,14 +9,15 @@ use Symfony\Component\HttpFoundation\Response;
 class RequireShoreRole
 {
     /**
-     * Only shore (admin) accounts may pass. Crew accounts are scoped to their own vessel
+     * Only shore accounts may pass: 'admin' (shore reviewer) or 'developer' (a superset
+     * that can also toggle mobile modules). Crew accounts are scoped to their own vessel
      * by the API and must not reach user management or exam review actions.
      */
     public function handle(Request $request, Closure $next): Response
     {
         $role = session('user_role') ?? session('api_user.role');
 
-        if ($role !== 'admin') {
+        if (! in_array($role, ['admin', 'developer'], true)) {
             abort(403, 'This action requires a shore (admin) account.');
         }
 
