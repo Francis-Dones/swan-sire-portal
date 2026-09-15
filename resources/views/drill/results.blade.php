@@ -50,7 +50,11 @@
                 <select name="vessel_name" class="form-input cursor-pointer">
                     <option value="">All Vessels</option>
                     @foreach($vessels as $v)
-                    <option value="{{ $v }}" {{ $vesselName === $v ? 'selected' : '' }}>{{ $v }}</option>
+                        @php
+                            // Safely extract the vessel name if it's an array
+                            $vName = is_array($v) ? ($v['name'] ?? $v['vessel_name'] ?? reset($v)) : $v;
+                        @endphp
+                        <option value="{{ $vName }}" {{ $vesselName === $vName ? 'selected' : '' }}>{{ $vName }}</option>
                     @endforeach
                 </select>
             </div>
