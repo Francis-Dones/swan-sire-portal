@@ -21,7 +21,6 @@ Route::middleware('check.api.auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/summary-statistics', [DashboardController::class, 'getSummaryStatistics'])->name('dashboard.summary');
-    Route::get('/dashboard/debug-answers', [DashboardController::class, 'debugAnswers'])->name('dashboard.debug');
 
     // Inspection Images
     Route::prefix('images')->name('images.')->group(function () {

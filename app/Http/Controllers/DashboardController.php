@@ -295,44 +295,6 @@ class DashboardController extends Controller
         }
     }
 
-    /**
-     * Debug method to check answers structure (remove in production)
-     */
-    public function debugAnswers()
-    {
-        try {
-            $exams = Exam::all();
-            
-            $debug = [];
-            foreach ($exams as $exam) {
-                $answers = $exam->answers;
-                $debug[] = [
-                    'exam_id' => $exam->exam_id,
-                    'vessel_name' => $exam->vessel_name,
-                    'answers_type' => gettype($answers),
-                    'answers_is_array' => is_array($answers),
-                    'answers_is_string' => is_string($answers),
-                    'answers_preview' => is_array($answers) 
-                        ? array_slice($answers, 0, 3) 
-                        : (is_string($answers) ? substr($answers, 0, 500) : null),
-                    'total_answers' => is_array($answers) ? count($answers) : (is_string($answers) ? strlen($answers) : 0)
-                ];
-            }
-            
-            return response()->json([
-                'success' => true,
-                'total_exams' => count($debug),
-                'data' => $debug
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     private function buildMonthlyData(array $exams): array
     {
         $months = [];
